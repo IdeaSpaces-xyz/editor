@@ -1,0 +1,275 @@
+/*
+ * Note-editor typography — the is_web v2 "open note" look, layered over
+ * atomic-editor's structural live-preview CSS (imported first in extensions.ts).
+ * We only restyle fonts/sizes/colors here; the hide-markup / reveal-on-cursor
+ * mechanics stay as the package ships them.
+ *
+ * Two-font editorial system: Inter body, Sorts Mill Goudy serif headings,
+ * Fragment Mono code. Colors are the `--is-*` semantic tokens, so light/dark
+ * follows the app theme.
+ */
+
+.cm-note-host {
+  height: 100%;
+}
+
+/* The atomic-editor table widget renders its own DOM keyed off
+   `--atomic-editor-*` variables, which default to dark values. Map them to our
+   `--is-*` tokens so tables theme correctly in both light and dark. */
+.cm-note-host {
+  --atomic-editor-accent: var(--is-accent);
+  --atomic-editor-accent-soft: color-mix(in srgb, var(--is-accent) 18%, transparent);
+  --atomic-editor-bg-panel: var(--is-surface);
+  --atomic-editor-bg-surface: var(--is-surface-alt);
+  --atomic-editor-border: var(--is-border);
+  --atomic-editor-code-bg: var(--is-surface-alt);
+  --atomic-editor-code-rail: var(--is-border);
+  --atomic-editor-fg: var(--is-text);
+  --atomic-editor-fg-faint: var(--is-text-tertiary);
+  --atomic-editor-fg-muted: var(--is-text-secondary);
+  --atomic-editor-font: var(--font-sans);
+  --atomic-editor-font-mono: var(--font-chrome);
+  --atomic-editor-link: var(--is-accent-text);
+  --atomic-editor-link-hover: var(--is-accent-text);
+  --atomic-editor-search-bg: var(--is-surface);
+  --atomic-editor-search-bg-active: var(--is-surface-alt);
+  --atomic-editor-radius: 8px;
+}
+
+.cm-note-host .cm-content {
+  padding-block: 0.5rem 4rem;
+}
+
+/* The editing surface (h-full, not the auto-height README render) gets a deep
+   bottom pad so the active line can scroll up off the viewport bottom as you
+   type — you're never writing glued to the bottom edge. */
+.cm-note-host.h-full .cm-content {
+  padding-bottom: 33vh;
+}
+
+/* The open note shows a real vertical scrollbar (the rest of the app hides
+   them) — it gives a sense of document length and where you are. Thin and
+   theme-aligned; the read-only README render doesn't scroll, so none appears. */
+.cm-note-host .cm-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--is-text) 22%, transparent) transparent;
+}
+.cm-note-host .cm-scroller::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.cm-note-host .cm-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cm-note-host .cm-scroller::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--is-text) 20%, transparent);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 6px;
+}
+.cm-note-host .cm-scroller::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--is-text) 34%, transparent);
+}
+
+/* Headings — serif, editorial weights/spacing (matches .is-note-prose). */
+.cm-note-host .cm-atomic-h1,
+.cm-note-host .cm-atomic-h2,
+.cm-note-host .cm-atomic-h3 {
+  font-family: var(--font-prose);
+  font-weight: 400;
+  color: var(--is-text);
+}
+.cm-note-host .cm-atomic-h1 {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.018em;
+}
+.cm-note-host .cm-atomic-h2 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+}
+.cm-note-host .cm-atomic-h3 {
+  font-size: 1.375rem;
+  line-height: 1.25;
+  letter-spacing: -0.008em;
+}
+/* h4–h6 — Fragment Mono kicker (uppercase). v2 prose uses tertiary for these,
+   but at 11px tertiary lands ≈3.9:1 in light (below AA for normal text); on a
+   writing surface these are real headings, so we use secondary for legibility
+   in both themes. */
+.cm-note-host .cm-atomic-h4,
+.cm-note-host .cm-atomic-h5,
+.cm-note-host .cm-atomic-h6 {
+  font-family: var(--font-chrome);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--is-text-secondary);
+}
+
+/* Inline emphasis. */
+.cm-note-host .cm-atomic-strong {
+  font-weight: 600;
+  color: inherit;
+}
+.cm-note-host .cm-atomic-em {
+  font-style: italic;
+  color: inherit;
+}
+.cm-note-host .cm-atomic-strike {
+  text-decoration: line-through;
+  color: var(--is-text-tertiary);
+}
+
+/* Links — accent text, soft underline, solid on hover. */
+.cm-note-host .cm-atomic-link {
+  color: var(--is-accent-text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--is-accent-text) 45%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.cm-note-host .cm-atomic-link:hover {
+  text-decoration-color: var(--is-accent-text);
+}
+
+/* Wiki-links — resolved reads like a link (accent); missing is dimmed + dashed
+   to signal "click to create". Both themes via `--is-*`. */
+.cm-note-host .cm-atomic-wiki-link {
+  color: var(--is-accent-text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--is-accent-text) 45%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.cm-note-host .cm-atomic-wiki-link:hover {
+  text-decoration-color: var(--is-accent-text);
+}
+.cm-note-host .cm-atomic-wiki-link-missing,
+.cm-note-host .cm-atomic-wiki-link-unresolved {
+  color: var(--is-text-tertiary);
+  text-decoration-style: dashed;
+  text-decoration-color: color-mix(in srgb, var(--is-text-tertiary) 60%, transparent);
+}
+.cm-note-host .cm-atomic-wiki-link-missing:hover,
+.cm-note-host .cm-atomic-wiki-link-unresolved:hover {
+  color: var(--is-text-secondary);
+  text-decoration-color: var(--is-text-tertiary);
+}
+
+/* Code. */
+.cm-note-host .cm-atomic-inline-code {
+  font-family: var(--font-chrome);
+  font-size: 0.85em;
+  background-color: var(--is-surface-alt);
+  color: var(--is-text);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.cm-note-host .cm-atomic-fenced-code {
+  font-family: var(--font-chrome);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  background-color: var(--is-surface-alt);
+  border: 1px solid var(--is-border);
+  border-radius: 8px;
+}
+
+/* Blockquote — serif italic, left rule. */
+.cm-note-host .cm-atomic-blockquote {
+  font-family: var(--font-prose);
+  font-style: italic;
+  color: var(--is-text-secondary);
+  border-left: 1.5px solid var(--is-text-tertiary);
+}
+
+/* List markers + horizontal rule + task colors. */
+.cm-note-host .cm-atomic-list-marker,
+.cm-note-host .cm-atomic-bullet {
+  color: var(--is-text-tertiary);
+}
+.cm-note-host .cm-atomic-hr {
+  border-top: 1px solid var(--is-border);
+}
+.cm-note-host .cm-atomic-task-done {
+  color: var(--is-text-tertiary);
+}
+
+/* Frontmatter "Properties" panel (frontmatterPanel.ts) — a structured view of
+   the note's leading YAML, which organizes it in the platform. Sits in the
+   content column; colors are `--is-*` tokens, contrast-checked for both themes
+   (label/value read on --is-surface-alt at AA in light and dark). */
+/* Vertical rhythm as padding on the wrapper (measured by CM6's heightmap), not
+   margin on the panel: a block widget's margin is excluded from
+   getBoundingClientRect, so the heightmap under-allocates and every line below
+   the panel clicks ~a line too low. */
+.cm-note-host .cm-fm-wrap {
+  padding-block: 0.25rem 1.5rem;
+}
+.cm-note-host .cm-fm-panel {
+  border: 1px solid var(--is-border);
+  border-radius: 8px;
+  background-color: var(--is-surface-alt);
+  overflow: hidden;
+  font-family: var(--font-sans);
+}
+.cm-note-host .cm-fm-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--is-border);
+  /* Header is chrome — not selectable; field values below stay copyable. */
+  user-select: none;
+}
+.cm-note-host .cm-fm-icon {
+  display: inline-flex;
+  color: var(--is-text-tertiary);
+}
+.cm-note-host .cm-fm-note {
+  font-size: 0.75rem;
+  color: var(--is-text-secondary);
+}
+.cm-note-host .cm-fm-edit {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--is-accent-text);
+  cursor: pointer;
+}
+.cm-note-host .cm-fm-edit:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cm-note-host .cm-fm-rows {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, auto) 1fr;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+}
+.cm-note-host .cm-fm-key {
+  margin: 0;
+  font-family: var(--font-chrome);
+  font-size: 0.8125rem;
+  color: var(--is-text-secondary);
+}
+.cm-note-host .cm-fm-val {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.875rem;
+  color: var(--is-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-note-host .cm-fm-empty {
+  color: var(--is-text-tertiary);
+}
