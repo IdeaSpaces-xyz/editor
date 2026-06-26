@@ -24,9 +24,6 @@
     "test:watch": "vitest",
     "prepare": "npm run build"
   },
-  "dependencies": {
-    "@fontsource/sorts-mill-goudy": "^5.2.8"
-  },
   "peerDependencies": {
     "@atomic-editor/editor": "0.4.3",
     "@codemirror/autocomplete": "^6.0.0",

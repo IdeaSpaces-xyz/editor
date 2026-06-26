@@ -41,6 +41,11 @@ utility the editor uses is `h-full`, which every app generates already; styling
 otherwise comes from `editor.css` (the `cm-*` classes) and the `--is-*` tokens
 the host defines.
 
+**Fonts are the host's job**, like the tokens: the editor's prose uses
+`Sorts Mill Goudy` via `font-family`, but the package does not bundle it — the
+host loads it (a `@fontsource` import or a web-font link) so there's no
+double-load when the app already serves that serif.
+
 ## Build
 
 `tsc` → `dist/` (+ `editor.css` copied), run via `prepare` so a `github:` install
