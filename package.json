@@ -1,6 +1,6 @@
 {
   "name": "@ideaspaces/editor",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Shared IdeaSpaces note editor — Obsidian-style live-preview Markdown over CodeMirror 6 + @atomic-editor/editor. Consumed by is_web and is_desktop.",
   "type": "module",
   "exports": {

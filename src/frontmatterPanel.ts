@@ -56,10 +56,15 @@ function revealRaw(view: EditorView): void {
   view.focus();
 }
 
-class FrontmatterWidget extends WidgetType {
+export class FrontmatterWidget extends WidgetType {
   constructor(
     readonly fields: FrontmatterField[],
-    readonly editable: boolean,
+    // NB: not `editable` — WidgetType defines a read-only `get editable()`, so a
+    // field of that name compiles to `this.editable = …`, which throws
+    // "assign to readonly property" in strict mode (every note with frontmatter
+    // black-screened). It also shadowed CM's signal that this block is
+    // non-editable. `allowEdit` is purely our "show the Edit affordance" flag.
+    readonly allowEdit: boolean,
   ) {
     super();
   }
@@ -67,7 +72,7 @@ class FrontmatterWidget extends WidgetType {
   // Reuse the DOM while the frontmatter is unchanged (the common case — the
   // user is editing the body), so the panel doesn't flicker on every keystroke.
   eq(other: FrontmatterWidget): boolean {
-    return this.editable === other.editable && serialize(this.fields) === serialize(other.fields);
+    return this.allowEdit === other.allowEdit && serialize(this.fields) === serialize(other.fields);
   }
 
   toDOM(view: EditorView): HTMLElement {
@@ -91,7 +96,7 @@ class FrontmatterWidget extends WidgetType {
     note.className = "cm-fm-note";
     note.textContent = "Properties — used to organize this note in IdeaSpaces";
     head.append(icon, note);
-    if (this.editable) {
+    if (this.allowEdit) {
       const edit = document.createElement("button");
       edit.type = "button";
       edit.className = "cm-fm-edit";
