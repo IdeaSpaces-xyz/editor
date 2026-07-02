@@ -170,13 +170,47 @@
   padding: 2px 6px;
   border-radius: 4px;
 }
+/* Fenced code. The atomic-editor applies `.cm-atomic-fenced-code` to EACH line
+   of the block (a line decoration), so a per-line `border` + `border-radius`
+   turns every line into its own rounded box ("bubble per line"). Instead render
+   one contiguous GitHub-style block: a shared backdrop on every line, side rails
+   as an inset box-shadow (no box-width change → CM6's virtualization geometry
+   stays intact, unlike a real border), and rounded top/bottom only on the block's
+   first/last lines (the opening/closing ``` fences), found via adjacency. */
 .cm-note-host .cm-atomic-fenced-code {
   font-family: var(--font-chrome);
   font-size: 0.8125rem;
   line-height: 1.55;
   background-color: var(--is-surface-alt);
-  border: 1px solid var(--is-border);
-  border-radius: 8px;
+  box-shadow:
+    inset 1px 0 0 var(--is-border),
+    inset -1px 0 0 var(--is-border);
+  border-radius: 0;
+  padding-left: 0.85rem;
+  padding-right: 0.85rem;
+}
+/* First line of the block — preceded by a non-fenced element (or the doc start):
+   add the top edge + round the top corners. */
+.cm-note-host :not(.cm-atomic-fenced-code) + .cm-atomic-fenced-code,
+.cm-note-host .cm-atomic-fenced-code:first-child {
+  box-shadow:
+    inset 1px 0 0 var(--is-border),
+    inset -1px 0 0 var(--is-border),
+    inset 0 1px 0 var(--is-border);
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  padding-top: 0.35rem;
+}
+/* Last line of the block — not followed by another fenced line (covers a mid-doc
+   block end and the doc's last line): add the bottom edge + round the bottom. */
+.cm-note-host .cm-atomic-fenced-code:not(:has(+ .cm-atomic-fenced-code)) {
+  box-shadow:
+    inset 1px 0 0 var(--is-border),
+    inset -1px 0 0 var(--is-border),
+    inset 0 -1px 0 var(--is-border);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  padding-bottom: 0.35rem;
 }
 
 /* Blockquote — serif italic, left rule. */
