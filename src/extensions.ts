@@ -45,7 +45,9 @@ const isChromeTheme = EditorView.theme({
   ".cm-content": {
     fontFamily: "var(--font-sans)",
     fontSize: "1.0625rem",
-    lineHeight: "1.85",
+    // Long-form prose needs enough leading to track across a 60–70ch measure,
+    // but 1.85 disconnects adjacent lines and weakens section rhythm.
+    lineHeight: "1.7",
     caretColor: "var(--is-text)",
     padding: "0",
     maxWidth: "720px",
