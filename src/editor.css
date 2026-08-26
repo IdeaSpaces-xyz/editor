@@ -349,3 +349,45 @@
 .cm-note-host .cm-fm-empty {
   color: var(--is-text-tertiary);
 }
+
+/* Internal-Note suggestions. CodeMirror owns positioning and keyboard
+   semantics; the editor only gives the popup the same calm chrome as the rest
+   of IdeaSpaces. */
+.cm-note-host .cm-tooltip.cm-tooltip-autocomplete {
+  overflow: hidden;
+  border: 1px solid var(--is-border);
+  border-radius: 0.625rem;
+  background: var(--is-surface);
+  box-shadow: 0 16px 40px color-mix(in srgb, black 18%, transparent);
+  color: var(--is-text);
+  font-family: var(--font-sans);
+}
+.cm-note-host .cm-tooltip.cm-tooltip-autocomplete > ul {
+  max-height: min(18rem, 44vh);
+  padding: 0.25rem;
+  font-family: var(--font-sans);
+}
+.cm-note-host .cm-tooltip.cm-tooltip-autocomplete > ul > li {
+  min-height: 2.25rem;
+  border-radius: 0.4rem;
+  padding: 0.45rem 0.625rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+.cm-note-host .cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: var(--is-surface-alt);
+  color: var(--is-text);
+}
+.cm-note-host .cm-completionIcon {
+  display: none;
+}
+.cm-note-host .cm-completionLabel {
+  color: inherit;
+}
+.cm-note-host .cm-completionDetail {
+  margin-left: 0.75rem;
+  color: var(--is-text-tertiary);
+  font-family: var(--font-chrome);
+  font-size: 0.72rem;
+  font-style: normal;
+}

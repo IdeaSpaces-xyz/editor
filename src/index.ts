@@ -4,6 +4,10 @@
 // props/callbacks — this package is pure, presentational, and IO-free.
 export { NoteEditor } from "./NoteEditor.js";
 export { noteEditorExtensions } from "./extensions.js";
+export type {
+  MarkdownLinkSuggestion,
+  SuggestMarkdownLinks,
+} from "./completions.js";
 export {
   parseFrontmatter,
   setFrontmatterName,

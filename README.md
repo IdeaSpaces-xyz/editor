@@ -15,10 +15,15 @@ routing. The host injects everything app-specific through props:
 
 - `onSave`, `onChange`, `onLinkClick` — the host decides where edits go (an API
   `PUT` on web, a clone write + `commit`/`sync` on desktop).
-- `resolveWiki` / `onWikiOpen` — the host owns its wiki index.
+- `resolveWiki` / `onWikiOpen` — the host owns resolution for existing
+  `[[wiki-links]]`.
+- `suggestMarkdownLinks` — the host searches the current Space for Notes. The
+  editor uses `[[` as the picker trigger but inserts a portable relative
+  Markdown link (`[label](../path.md)`).
 
-So the **wiki index, link resolution, and IO adapters stay in each app**; only
-the editor and the frontmatter parsing live here.
+The editor also completes a typed list prefix such as `- [` to the valid task
+marker `- [ ] `. The **Note index, link resolution, and IO adapters stay in each
+app**; only host-neutral authoring behavior and presentation live here.
 
 ## Exports
 
@@ -49,4 +54,5 @@ double-load when the app already serves that serif.
 ## Build
 
 `tsc` → `dist/` (+ `editor.css` copied), run via `prepare` so a `github:` install
-builds on fetch. `npm test` runs the frontmatter unit tests.
+builds on fetch. `npm test` runs the frontmatter and authoring-completion unit
+tests.
