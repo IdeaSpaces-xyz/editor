@@ -18,6 +18,11 @@ import {
 } from "@atomic-editor/editor";
 import "@atomic-editor/editor/styles.css";
 import { frontmatterPanel } from "./frontmatterPanel.js";
+import {
+  markdownLinkCompletion,
+  taskMarkerCompletion,
+  type SuggestMarkdownLinks,
+} from "./completions.js";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
@@ -83,6 +88,8 @@ export function noteEditorExtensions(opts: {
   onWikiOpen?: (target: string) => void;
   /** Resolve a target's status for styling (resolved vs. missing). */
   resolveWiki?: (target: string) => WikiLinkResolvedTarget | null;
+  /** Suggest Notes after `[[`; selection inserts a portable Markdown link. */
+  suggestMarkdownLinks?: SuggestMarkdownLinks;
 }): Extension[] {
   return [
     highlightSpecialChars(),
@@ -93,6 +100,14 @@ export function noteEditorExtensions(opts: {
     indentOnInput(),
     rectangularSelection(),
     highlightActiveLine(),
+    ...(opts.readOnly
+      ? []
+      : [
+          taskMarkerCompletion(),
+          ...(opts.suggestMarkdownLinks
+            ? [markdownLinkCompletion(opts.suggestMarkdownLinks)]
+            : []),
+        ]),
     closeBrackets(),
     extendEmphasisPair,
     autoCloseCodeFence,

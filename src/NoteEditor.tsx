@@ -2,6 +2,7 @@ import { Component, useEffect, useRef, type CSSProperties, type ReactNode } from
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import type { WikiLinkResolvedTarget } from "@atomic-editor/editor";
+import type { SuggestMarkdownLinks } from "./completions.js";
 import { noteEditorExtensions } from "./extensions.js";
 import { bodyStartOffset } from "./frontmatter.js";
 import "./editor.css";
@@ -18,6 +19,7 @@ export interface NoteEditorProps {
   autoFocus?: boolean;
   onWikiOpen?: (target: string) => void;
   resolveWiki?: (target: string) => WikiLinkResolvedTarget | null;
+  suggestMarkdownLinks?: SuggestMarkdownLinks;
 }
 
 // Live-preview markdown editor over a single note's raw content.
@@ -39,6 +41,7 @@ function EditorImpl({
   autoFocus = true,
   onWikiOpen,
   resolveWiki,
+  suggestMarkdownLinks,
 }: NoteEditorProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
@@ -46,11 +49,13 @@ function EditorImpl({
   const onLinkClickRef = useRef(onLinkClick);
   const onWikiOpenRef = useRef(onWikiOpen);
   const resolveWikiRef = useRef(resolveWiki);
+  const suggestMarkdownLinksRef = useRef(suggestMarkdownLinks);
   onChangeRef.current = onChange;
   onSaveRef.current = onSave;
   onLinkClickRef.current = onLinkClick;
   onWikiOpenRef.current = onWikiOpen;
   resolveWikiRef.current = resolveWiki;
+  suggestMarkdownLinksRef.current = suggestMarkdownLinks;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -72,6 +77,9 @@ function EditorImpl({
           // where there's a note index. Ref indirection keeps the view built once.
           onWikiOpen: onWikiOpen ? (target) => (onWikiOpenRef.current ?? noop)(target) : undefined,
           resolveWiki: resolveWiki ? (target) => resolveWikiRef.current?.(target) ?? null : undefined,
+          suggestMarkdownLinks: suggestMarkdownLinks
+            ? (query) => suggestMarkdownLinksRef.current?.(query) ?? []
+            : undefined,
         }),
       }),
     });
