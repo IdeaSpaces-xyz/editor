@@ -40,6 +40,7 @@ live here.
 
 ```ts
 import { NoteEditor, parseFrontmatter, setFrontmatterName, bodyStartOffset } from "@ideaspaces/editor";
+import { youtubeVideo } from "@ideaspaces/editor/media"; // parser-only consumer, no editor bundle
 import "@ideaspaces/editor/styles.css"; // (NoteEditor also side-effect-imports it)
 ```
 
