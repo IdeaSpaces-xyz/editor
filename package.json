@@ -12,6 +12,10 @@
       "types": "./dist/frontmatter.d.ts",
       "import": "./dist/frontmatter.js"
     },
+    "./media": {
+      "types": "./dist/media.d.ts",
+      "import": "./dist/media.js"
+    },
     "./styles.css": "./dist/editor.css"
   },
   "files": [

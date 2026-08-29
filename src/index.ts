@@ -8,6 +8,25 @@ export type {
   MarkdownLinkSuggestion,
   SuggestMarkdownLinks,
 } from "./completions.js";
+export type { ResolveMarkdownImage } from "./imageSources.js";
+export {
+  storedImageMarkdown,
+  type MarkdownImageAsset,
+  type StoredMarkdownImage,
+  type StoreMarkdownImage,
+} from "./imageAssets.js";
+export {
+  imageDescription,
+  isImageUrl,
+  visualUrlInsertion,
+  youtubeVideo,
+  type VisualUrlInsertion,
+  type YouTubeVideo,
+} from "./media.js";
+export {
+  youtubeMarkdownLink,
+  type YouTubeMarkdownLink,
+} from "./youtubeEmbeds.js";
 export {
   parseFrontmatter,
   setFrontmatterName,
