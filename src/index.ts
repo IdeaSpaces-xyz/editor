@@ -8,6 +8,7 @@ export type {
   MarkdownLinkSuggestion,
   SuggestMarkdownLinks,
 } from "./completions.js";
+export type { ResolveMarkdownImage } from "./imageSources.js";
 export {
   storedImageMarkdown,
   type MarkdownImageAsset,

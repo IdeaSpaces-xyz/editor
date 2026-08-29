@@ -4,6 +4,7 @@ import { EditorView } from "@codemirror/view";
 import type { WikiLinkResolvedTarget } from "@atomic-editor/editor";
 import type { SuggestMarkdownLinks } from "./completions.js";
 import type { StoreMarkdownImage } from "./imageAssets.js";
+import type { ResolveMarkdownImage } from "./imageSources.js";
 import { noteEditorExtensions } from "./extensions.js";
 import { bodyStartOffset } from "./frontmatter.js";
 import "./editor.css";
@@ -25,6 +26,8 @@ export interface NoteEditorProps {
   storeMarkdownImage?: StoreMarkdownImage;
   /** Present a storage/validation failure; defaults to console.error. */
   onMarkdownImageError?: (error: unknown) => void;
+  /** Resolve a rendered image source without changing the authored Markdown. */
+  resolveMarkdownImage?: ResolveMarkdownImage;
 }
 
 // Live-preview markdown editor over a single note's raw content.
@@ -49,6 +52,7 @@ function EditorImpl({
   suggestMarkdownLinks,
   storeMarkdownImage,
   onMarkdownImageError,
+  resolveMarkdownImage,
 }: NoteEditorProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
@@ -59,6 +63,7 @@ function EditorImpl({
   const suggestMarkdownLinksRef = useRef(suggestMarkdownLinks);
   const storeMarkdownImageRef = useRef(storeMarkdownImage);
   const onMarkdownImageErrorRef = useRef(onMarkdownImageError);
+  const resolveMarkdownImageRef = useRef(resolveMarkdownImage);
   onChangeRef.current = onChange;
   onSaveRef.current = onSave;
   onLinkClickRef.current = onLinkClick;
@@ -67,6 +72,7 @@ function EditorImpl({
   suggestMarkdownLinksRef.current = suggestMarkdownLinks;
   storeMarkdownImageRef.current = storeMarkdownImage;
   onMarkdownImageErrorRef.current = onMarkdownImageError;
+  resolveMarkdownImageRef.current = resolveMarkdownImage;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -96,8 +102,11 @@ function EditorImpl({
             : undefined,
           onMarkdownImageError: (error) => {
             if (onMarkdownImageErrorRef.current) onMarkdownImageErrorRef.current(error);
-            else console.error("Could not store Markdown image.", error);
+            else console.error("Could not store or render Markdown image.", error);
           },
+          resolveMarkdownImage: resolveMarkdownImage
+            ? (source) => resolveMarkdownImageRef.current!(source)
+            : undefined,
         }),
       }),
     });
