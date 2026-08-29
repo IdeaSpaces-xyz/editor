@@ -14,21 +14,49 @@ function state(doc: string): EditorState {
 
 describe("visual URL authoring", () => {
   it("turns an image URL into portable Markdown and selects the derived description", () => {
-    const editor = state("Look: ");
+    const editor = state("");
 
     expect(visualUrlInsertion(
       editor,
-      editor.doc.length,
-      editor.doc.length,
+      0,
+      0,
       "https://cdn.example.test/Architecture%20diagram.png?width=1600",
     )).toEqual({
-      from: 6,
-      to: 6,
+      from: 0,
+      to: 0,
       insert: "![Architecture diagram](https://cdn.example.test/Architecture%20diagram.png?width=1600)",
-      anchor: 8,
-      head: 28,
+      anchor: 2,
+      head: 22,
       kind: "image",
     });
+  });
+
+  it("keeps a pasted image on its own line and makes description replacement safe", () => {
+    const editor = state("# Existing heading");
+    const insertion = visualUrlInsertion(
+      editor,
+      0,
+      0,
+      "https://example.test/diagram.png",
+    )!;
+    const pasted = editor.update({
+      changes: { from: insertion.from, to: insertion.to, insert: insertion.insert },
+      selection: { anchor: insertion.anchor, head: insertion.head },
+    }).state;
+    const replaced = pasted.update({
+      changes: {
+        from: pasted.selection.main.from,
+        to: pasted.selection.main.to,
+        insert: "System boundary",
+      },
+    }).state;
+
+    expect(pasted.doc.toString()).toBe(
+      "![Diagram](https://example.test/diagram.png)\n\n# Existing heading",
+    );
+    expect(replaced.doc.toString()).toBe(
+      "![System boundary](https://example.test/diagram.png)\n\n# Existing heading",
+    );
   });
 
   it("recognizes browser-renderable image paths without guessing from arbitrary URLs", () => {

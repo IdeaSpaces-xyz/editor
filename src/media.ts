@@ -97,7 +97,7 @@ function inCode(state: EditorState, position: number): boolean {
   }
 }
 
-function youtubeLinePadding(state: EditorState, position: number): { before: string; after: string } {
+function blockLinePadding(state: EditorState, position: number): { before: string; after: string } {
   const line = state.doc.lineAt(position);
   return {
     before: state.sliceDoc(line.from, position).trim() ? "\n\n" : "",
@@ -121,13 +121,16 @@ export function visualUrlInsertion(
 
   if (isImageUrl(value)) {
     const label = imageDescription(value);
-    const insert = `![${label}](${value})`;
+    const padding = blockLinePadding(state, from);
+    const markdown = `![${label}](${value})`;
+    const insert = `${padding.before}${markdown}${padding.after}`;
+    const labelFrom = from + padding.before.length + 2;
     return {
       from,
       to,
       insert,
-      anchor: from + 2,
-      head: from + 2 + label.length,
+      anchor: labelFrom,
+      head: labelFrom + label.length,
       kind: "image",
     };
   }
@@ -135,7 +138,7 @@ export function visualUrlInsertion(
   const video = youtubeVideo(value);
   if (!video) return null;
   const label = "YouTube video";
-  const padding = youtubeLinePadding(state, from);
+  const padding = blockLinePadding(state, from);
   const markdown = `[${label}](${video.canonicalUrl})`;
   const insert = `${padding.before}${markdown}${padding.after}`;
   const labelFrom = from + padding.before.length + 1;

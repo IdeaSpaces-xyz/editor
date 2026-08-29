@@ -103,8 +103,10 @@ async function insertImages(
       const at = view.state.field(assetMarkers).get(id);
       if (at === undefined) return;
       const authored = storedImageMarkdown({ name: file.name }, stored);
-      const prefix = view.state.doc.lineAt(at).text.trim() ? "\n\n" : "";
-      const insert = `${prefix}${authored.markdown}`;
+      const line = view.state.doc.lineAt(at);
+      const prefix = view.state.sliceDoc(line.from, at).trim() ? "\n\n" : "";
+      const suffix = view.state.sliceDoc(at, line.to).trim() ? "\n\n" : "";
+      const insert = `${prefix}${authored.markdown}${suffix}`;
       const descriptionFrom = at + prefix.length + authored.descriptionFrom;
       view.dispatch({
         changes: { from: at, insert },
