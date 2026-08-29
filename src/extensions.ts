@@ -23,6 +23,9 @@ import {
   taskMarkerCompletion,
   type SuggestMarkdownLinks,
 } from "./completions.js";
+import { visualUrlPaste } from "./media.js";
+import { markdownImageFiles, type StoreMarkdownImage } from "./imageAssets.js";
+import { youtubeEmbeds } from "./youtubeEmbeds.js";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
@@ -90,6 +93,9 @@ export function noteEditorExtensions(opts: {
   resolveWiki?: (target: string) => WikiLinkResolvedTarget | null;
   /** Suggest Notes after `[[`; selection inserts a portable Markdown link. */
   suggestMarkdownLinks?: SuggestMarkdownLinks;
+  /** Store pasted/dropped picture bytes and return a portable destination. */
+  storeMarkdownImage?: StoreMarkdownImage;
+  onMarkdownImageError?: (error: unknown) => void;
 }): Extension[] {
   return [
     highlightSpecialChars(),
@@ -104,6 +110,13 @@ export function noteEditorExtensions(opts: {
       ? []
       : [
           taskMarkerCompletion(),
+          visualUrlPaste(),
+          ...(opts.storeMarkdownImage
+            ? [markdownImageFiles(
+                opts.storeMarkdownImage,
+                opts.onMarkdownImageError ?? ((error) => console.error(error)),
+              )]
+            : []),
           ...(opts.suggestMarkdownLinks
             ? [markdownLinkCompletion(opts.suggestMarkdownLinks)]
             : []),
@@ -144,6 +157,7 @@ export function noteEditorExtensions(opts: {
     // UI navigation/accessibility, and markdownKeymap handles list continuation.
     keymap.of([...closeBracketsKeymap, ...historyKeymap, ...markdownKeymap, ...defaultKeymap]),
     imageBlocks(),
+    youtubeEmbeds(),
     // Render GFM tables as real tables (without this they show as raw `| … |`
     // source). Cell links route through the same handler as body links.
     tables({ onLinkClick: opts.onLinkClick }),

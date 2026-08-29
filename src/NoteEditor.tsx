@@ -3,6 +3,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import type { WikiLinkResolvedTarget } from "@atomic-editor/editor";
 import type { SuggestMarkdownLinks } from "./completions.js";
+import type { StoreMarkdownImage } from "./imageAssets.js";
 import { noteEditorExtensions } from "./extensions.js";
 import { bodyStartOffset } from "./frontmatter.js";
 import "./editor.css";
@@ -20,6 +21,10 @@ export interface NoteEditorProps {
   onWikiOpen?: (target: string) => void;
   resolveWiki?: (target: string) => WikiLinkResolvedTarget | null;
   suggestMarkdownLinks?: SuggestMarkdownLinks;
+  /** Store pasted/dropped picture bytes and return a portable Markdown destination. */
+  storeMarkdownImage?: StoreMarkdownImage;
+  /** Present a storage/validation failure; defaults to console.error. */
+  onMarkdownImageError?: (error: unknown) => void;
 }
 
 // Live-preview markdown editor over a single note's raw content.
@@ -42,6 +47,8 @@ function EditorImpl({
   onWikiOpen,
   resolveWiki,
   suggestMarkdownLinks,
+  storeMarkdownImage,
+  onMarkdownImageError,
 }: NoteEditorProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
@@ -50,12 +57,16 @@ function EditorImpl({
   const onWikiOpenRef = useRef(onWikiOpen);
   const resolveWikiRef = useRef(resolveWiki);
   const suggestMarkdownLinksRef = useRef(suggestMarkdownLinks);
+  const storeMarkdownImageRef = useRef(storeMarkdownImage);
+  const onMarkdownImageErrorRef = useRef(onMarkdownImageError);
   onChangeRef.current = onChange;
   onSaveRef.current = onSave;
   onLinkClickRef.current = onLinkClick;
   onWikiOpenRef.current = onWikiOpen;
   resolveWikiRef.current = resolveWiki;
   suggestMarkdownLinksRef.current = suggestMarkdownLinks;
+  storeMarkdownImageRef.current = storeMarkdownImage;
+  onMarkdownImageErrorRef.current = onMarkdownImageError;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -80,6 +91,13 @@ function EditorImpl({
           suggestMarkdownLinks: suggestMarkdownLinks
             ? (query) => suggestMarkdownLinksRef.current?.(query) ?? []
             : undefined,
+          storeMarkdownImage: storeMarkdownImage
+            ? (image) => storeMarkdownImageRef.current!(image)
+            : undefined,
+          onMarkdownImageError: (error) => {
+            if (onMarkdownImageErrorRef.current) onMarkdownImageErrorRef.current(error);
+            else console.error("Could not store Markdown image.", error);
+          },
         }),
       }),
     });
