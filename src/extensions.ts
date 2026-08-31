@@ -21,7 +21,7 @@ import {
   taskMarkerCompletion,
   type SuggestMarkdownLinks,
 } from "./completions.js";
-import { visualUrlPaste } from "./media.js";
+import { visualUrlPaste, type ResolveYouTubeTitle } from "./media.js";
 import { markdownImageFiles, type StoreMarkdownImage } from "./imageAssets.js";
 import { markdownImageSources, type ResolveMarkdownImage } from "./imageSources.js";
 import { youtubeEmbeds } from "./youtubeEmbeds.js";
@@ -100,6 +100,8 @@ export function noteEditorExtensions(opts: {
   onMarkdownImageError?: (error: unknown) => void;
   /** Resolve rendered image sources without changing Markdown. */
   resolveMarkdownImage?: ResolveMarkdownImage;
+  /** Resolve optional public metadata for a pasted YouTube URL. */
+  resolveYouTubeTitle?: ResolveYouTubeTitle;
 }): Extension[] {
   return [
     highlightSpecialChars(),
@@ -114,7 +116,7 @@ export function noteEditorExtensions(opts: {
       ? []
       : [
           taskMarkerCompletion(),
-          visualUrlPaste(),
+          visualUrlPaste(opts.resolveYouTubeTitle),
           ...(opts.storeMarkdownImage
             ? [markdownImageFiles(
                 opts.storeMarkdownImage,

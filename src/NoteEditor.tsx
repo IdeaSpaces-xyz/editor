@@ -5,6 +5,7 @@ import type { WikiLinkResolvedTarget } from "@atomic-editor/editor";
 import type { SuggestMarkdownLinks } from "./completions.js";
 import type { StoreMarkdownImage } from "./imageAssets.js";
 import type { ResolveMarkdownImage } from "./imageSources.js";
+import type { ResolveYouTubeTitle } from "./media.js";
 import { noteEditorExtensions } from "./extensions.js";
 import { bodyStartOffset } from "./frontmatter.js";
 import "./editor.css";
@@ -28,6 +29,8 @@ export interface NoteEditorProps {
   onMarkdownImageError?: (error: unknown) => void;
   /** Resolve a rendered image source without changing the authored Markdown. */
   resolveMarkdownImage?: ResolveMarkdownImage;
+  /** Resolve optional public metadata for a pasted YouTube URL. */
+  resolveYouTubeTitle?: ResolveYouTubeTitle;
 }
 
 // Live-preview markdown editor over a single note's raw content.
@@ -53,6 +56,7 @@ function EditorImpl({
   storeMarkdownImage,
   onMarkdownImageError,
   resolveMarkdownImage,
+  resolveYouTubeTitle,
 }: NoteEditorProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
@@ -64,6 +68,7 @@ function EditorImpl({
   const storeMarkdownImageRef = useRef(storeMarkdownImage);
   const onMarkdownImageErrorRef = useRef(onMarkdownImageError);
   const resolveMarkdownImageRef = useRef(resolveMarkdownImage);
+  const resolveYouTubeTitleRef = useRef(resolveYouTubeTitle);
   onChangeRef.current = onChange;
   onSaveRef.current = onSave;
   onLinkClickRef.current = onLinkClick;
@@ -73,6 +78,7 @@ function EditorImpl({
   storeMarkdownImageRef.current = storeMarkdownImage;
   onMarkdownImageErrorRef.current = onMarkdownImageError;
   resolveMarkdownImageRef.current = resolveMarkdownImage;
+  resolveYouTubeTitleRef.current = resolveYouTubeTitle;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -106,6 +112,9 @@ function EditorImpl({
           },
           resolveMarkdownImage: resolveMarkdownImage
             ? (source) => resolveMarkdownImageRef.current!(source)
+            : undefined,
+          resolveYouTubeTitle: resolveYouTubeTitle
+            ? (video) => resolveYouTubeTitleRef.current!(video)
             : undefined,
         }),
       }),

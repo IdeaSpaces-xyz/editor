@@ -1,5 +1,10 @@
 import { syntaxTree } from "@codemirror/language";
-import { EditorState, type Extension } from "@codemirror/state";
+import {
+  EditorState,
+  StateEffect,
+  StateField,
+  type Extension,
+} from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 
 export interface YouTubeVideo {
@@ -7,6 +12,9 @@ export interface YouTubeVideo {
   canonicalUrl: string;
   embedUrl: string;
 }
+
+/** Host-owned public-metadata lookup used to caption a pasted YouTube link. */
+export type ResolveYouTubeTitle = (video: YouTubeVideo) => Promise<string | null>;
 
 export interface VisualUrlInsertion {
   from: number;
@@ -19,6 +27,37 @@ export interface VisualUrlInsertion {
 
 const IMAGE_EXTENSIONS = /\.(?:avif|gif|jpe?g|png|webp)$/iu;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/u;
+const DEFAULT_YOUTUBE_LABEL = "YouTube video";
+const MAX_YOUTUBE_TITLE_LENGTH = 300;
+
+interface YouTubeLabelMarker {
+  id: number;
+  from: number;
+  to: number;
+}
+
+const addYouTubeLabelMarker = StateEffect.define<YouTubeLabelMarker>();
+const removeYouTubeLabelMarker = StateEffect.define<number>();
+let nextYouTubeLabelMarkerId = 1;
+
+const youtubeLabelMarkers = StateField.define<ReadonlyMap<number, YouTubeLabelMarker>>({
+  create: () => new Map(),
+  update(value, transaction) {
+    const next = new Map<number, YouTubeLabelMarker>();
+    for (const marker of value.values()) {
+      next.set(marker.id, {
+        ...marker,
+        from: transaction.changes.mapPos(marker.from, 1),
+        to: transaction.changes.mapPos(marker.to, -1),
+      });
+    }
+    for (const effect of transaction.effects) {
+      if (effect.is(addYouTubeLabelMarker)) next.set(effect.value.id, effect.value);
+      if (effect.is(removeYouTubeLabelMarker)) next.delete(effect.value);
+    }
+    return next;
+  },
+});
 
 function httpUrl(value: string): URL | null {
   try {
@@ -87,6 +126,15 @@ export function imageDescription(value: string): string {
   return url ? humanizeFilename(url.pathname) : "Image";
 }
 
+/** Collapse public metadata into one safe, portable Markdown-link label. */
+export function youtubeTitleLabel(value: string): string | null {
+  const title = value.replace(/\s+/gu, " ").trim();
+  if (!title) return null;
+  return title
+    .slice(0, MAX_YOUTUBE_TITLE_LENGTH)
+    .replace(/([\\[\]])/gu, "\\$1");
+}
+
 function inCode(state: EditorState, position: number): boolean {
   let node = syntaxTree(state).resolveInner(position, -1);
   while (true) {
@@ -137,7 +185,7 @@ export function visualUrlInsertion(
 
   const video = youtubeVideo(value);
   if (!video) return null;
-  const label = "YouTube video";
+  const label = DEFAULT_YOUTUBE_LABEL;
   const padding = blockLinePadding(state, from);
   const markdown = `[${label}](${video.canonicalUrl})`;
   const insert = `${padding.before}${markdown}${padding.after}`;
@@ -152,9 +200,60 @@ export function visualUrlInsertion(
   };
 }
 
+export function resolvedYouTubeTitleChange(
+  state: EditorState,
+  marker: Pick<YouTubeLabelMarker, "from" | "to">,
+  video: YouTubeVideo,
+  resolvedTitle: string,
+): { from: number; to: number; insert: string } | null {
+  const title = youtubeTitleLabel(resolvedTitle);
+  if (!title || title === DEFAULT_YOUTUBE_LABEL) return null;
+  if (state.sliceDoc(marker.from, marker.to) !== DEFAULT_YOUTUBE_LABEL) return null;
+
+  const line = state.doc.lineAt(marker.from);
+  const expected = `[${DEFAULT_YOUTUBE_LABEL}](${video.canonicalUrl})`;
+  return line.text.trim() === expected
+    ? { from: marker.from, to: marker.to, insert: title }
+    : null;
+}
+
+async function applyResolvedYouTubeTitle(
+  view: EditorView,
+  markerId: number,
+  video: YouTubeVideo,
+  resolveTitle: ResolveYouTubeTitle,
+): Promise<void> {
+  try {
+    const resolved = await resolveTitle(video);
+    if (!resolved || !view.dom.isConnected) return;
+
+    const marker = view.state.field(youtubeLabelMarkers).get(markerId);
+    if (!marker) return;
+    const change = resolvedYouTubeTitleChange(view.state, marker, video, resolved);
+    if (!change) return;
+
+    const selection = view.state.selection.main;
+    const labelIsSelected = selection.from === marker.from && selection.to === marker.to;
+    view.dispatch({
+      changes: change,
+      selection: labelIsSelected
+        ? { anchor: marker.from, head: marker.from + change.insert.length }
+        : undefined,
+      effects: removeYouTubeLabelMarker.of(markerId),
+    });
+  } catch {
+    // Metadata is optional enrichment. Offline, blocked, or removed videos keep
+    // the already-authored portable fallback instead of turning paste into an error.
+  } finally {
+    if (view.dom.isConnected && view.state.field(youtubeLabelMarkers).has(markerId)) {
+      view.dispatch({ effects: removeYouTubeLabelMarker.of(markerId) });
+    }
+  }
+}
+
 /** Editor paste behavior for bare image and YouTube URLs. */
-export function visualUrlPaste(): Extension {
-  return EditorView.domEventHandlers({
+export function visualUrlPaste(resolveYouTubeTitle?: ResolveYouTubeTitle): Extension {
+  const pasteHandler = EditorView.domEventHandlers({
     paste(event, view) {
       if (event.clipboardData?.files.length) return false;
       if (view.state.selection.ranges.length !== 1) return false;
@@ -164,6 +263,8 @@ export function visualUrlPaste(): Extension {
       const insertion = visualUrlInsertion(view.state, range.from, range.to, text);
       if (!insertion) return false;
 
+      const video = insertion.kind === "youtube" ? youtubeVideo(text.trim()) : null;
+      const markerId = video && resolveYouTubeTitle ? nextYouTubeLabelMarkerId++ : null;
       event.preventDefault();
       view.dispatch({
         changes: {
@@ -172,9 +273,21 @@ export function visualUrlPaste(): Extension {
           insert: insertion.insert,
         },
         selection: { anchor: insertion.anchor, head: insertion.head },
+        effects: markerId === null
+          ? undefined
+          : addYouTubeLabelMarker.of({
+              id: markerId,
+              from: insertion.anchor,
+              to: insertion.head,
+            }),
         userEvent: "input.paste",
       });
+      if (markerId !== null && video && resolveYouTubeTitle) {
+        void applyResolvedYouTubeTitle(view, markerId, video, resolveYouTubeTitle);
+      }
       return true;
     },
   });
+
+  return resolveYouTubeTitle ? [youtubeLabelMarkers, pasteHandler] : pasteHandler;
 }
