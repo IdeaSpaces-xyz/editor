@@ -1,13 +1,11 @@
 // CodeMirror extension set for the note editor.
 //
-// Composes the atomic-editor live-preview layer (Obsidian-style inline
-// rendering — hide markup, reveal on the cursor's line) over CM's markdown
-// language, then swaps atomic-editor's own theme for our `--is-*` chrome.
-// Typography (the is_web v2 note look) is layered in editor.css by overriding
-// the `cm-atomic-*` classes the live-preview layer emits.
+// Composes atomic-editor's live-preview mechanics (hide markup, reveal on the
+// cursor's line) over CM's markdown language, then applies one IdeaSpaces-owned
+// syntax palette and `--is-*` chrome. Block typography lives only in editor.css
+// through the semantic `cm-atomic-*` line classes emitted by live preview.
 
 import {
-  atomicMarkdownSyntax,
   autoCloseCodeFence,
   extendEmphasisPair,
   imageBlocks,
@@ -27,6 +25,7 @@ import { visualUrlPaste } from "./media.js";
 import { markdownImageFiles, type StoreMarkdownImage } from "./imageAssets.js";
 import { markdownImageSources, type ResolveMarkdownImage } from "./imageSources.js";
 import { youtubeEmbeds } from "./youtubeEmbeds.js";
+import { ideaSpacesMarkdownSyntax } from "./markdownSyntax.js";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
@@ -133,7 +132,9 @@ export function noteEditorExtensions(opts: {
     markdownLanguage.data.of({
       closeBrackets: { brackets: ["(", "[", "{", "'", '"', "*", "_", "`"] },
     }),
-    atomicMarkdownSyntax,
+    // IdeaSpaces owns visual syntax. Atomic Editor supplies live-preview
+    // mechanics only, so nested syntax spans cannot restyle block typography.
+    ideaSpacesMarkdownSyntax,
     // Render leading YAML frontmatter as a Properties panel (after the markdown
     // syntax layer, so it overrides how the `---` block would otherwise render).
     // No Edit affordance in read-only (README) renders.

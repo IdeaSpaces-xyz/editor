@@ -27,6 +27,11 @@ routing. The host injects everything app-specific through props:
   without rewriting the Markdown (for example, a bounded Local `_assets/`
   reader or a hosted asset URL).
 
+`@atomic-editor/editor` supplies Markdown parsing and live-preview mechanics; it does not own the
+IdeaSpaces visual grammar. This package applies one syntax palette and one block-typography sheet for
+both reading and editing. In particular, heading family, size, weight, and rhythm live only in
+`editor.css` rather than being restyled again by nested CodeMirror highlight spans.
+
 The editor also completes a typed list prefix such as `- [` to the valid task
 marker `- [ ] `. Pasting a bare image URL creates a portable Markdown image and
 pasting a YouTube URL creates a standard labeled link; the generated description
