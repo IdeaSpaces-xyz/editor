@@ -35,8 +35,9 @@ both reading and editing. In particular, heading family, size, weight, and rhyth
 In ordinary prose, **Enter creates one portable blank-line-delimited Markdown paragraph** and
 **Shift+Enter creates a soft line break**. Structured blocks keep their native behavior: lists
 continue or exit, quotes retain their marker, tables navigate, and code receives a literal newline.
-This keeps the source and the rendered spacing consistent instead of making paragraph semantics
-depend on whether the current Note happened to contain a blank line already.
+The blank line is semantic source, not presentation: the live editor collapses the delimiter and
+applies the same `1.2em` paragraph rhythm as the rendered Space reader. Repeated blank delimiters do
+not multiply the gap, and headings continue to own their section spacing.
 
 The editor also completes a typed list prefix such as `- [` to the valid task
 marker `- [ ] `. Pasting a bare image URL creates a portable Markdown image and

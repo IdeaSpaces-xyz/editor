@@ -104,25 +104,35 @@
   padding-bottom: 0.5rem;
 }
 
-/* A source separator is useful Markdown structure, but it must not be the
-   primary spacing control. Keep ordinary paragraph separators to half a body
-   line, and compress separators touching headings because the heading already
-   owns that relationship. Multiple blank source lines no longer create an
-   arbitrarily tall reading gap. These line-height/min-height changes remain
-   inside CM6's measured boxes and therefore preserve virtualization. */
+/* CommonMark stores a paragraph boundary as a blank source line. That line is
+   structure, not visual spacing: paragraphRhythm.ts marks the preceding prose
+   line and the delimiter separately. Collapse the delimiter and apply the same
+   1.2em paragraph gap as `.is-note-prose p` in the rendered Space reader. This
+   keeps one reading rhythm without storing presentation as extra source lines.
+   Padding stays inside CM6's measured line box and preserves virtualization. */
+.cm-note-host .cm-line.cm-ideaspaces-paragraph-end {
+  padding-bottom: 1.2em;
+}
+.cm-note-host .cm-line.cm-ideaspaces-paragraph-separator {
+  min-height: 0;
+  line-height: 0;
+  padding-block: 0;
+}
+
+/* Blank lines outside a top-level paragraph boundary belong to structured
+   Markdown or are the live insertion point. Keep them compact by default but
+   restore a normal caret line while active. */
 .cm-note-host .cm-line:has(> br:only-child) {
   min-height: 0.875rem;
   line-height: 0.875rem;
 }
-.cm-note-host .cm-line:has(> br:only-child):has(+ .cm-line.cm-atomic-h1),
-.cm-note-host .cm-line:has(> br:only-child):has(+ .cm-line.cm-atomic-h2),
-.cm-note-host .cm-line:has(> br:only-child):has(+ .cm-line.cm-atomic-h3),
-.cm-note-host .cm-line.cm-atomic-h1 + .cm-line:has(> br:only-child),
-.cm-note-host .cm-line.cm-atomic-h2 + .cm-line:has(> br:only-child),
-.cm-note-host .cm-line.cm-atomic-h3 + .cm-line:has(> br:only-child),
-.cm-note-host .cm-line:has(> br:only-child) + .cm-line:has(> br:only-child) {
-  min-height: 0.375rem;
-  line-height: 0.375rem;
+.cm-note-host .cm-line:has(> br:only-child).cm-activeLine {
+  min-height: 1.7em;
+  line-height: 1.7;
+}
+.cm-note-host .cm-line.cm-ideaspaces-paragraph-separator:not(.cm-activeLine) {
+  min-height: 0;
+  line-height: 0;
 }
 
 /* A document that begins with a heading should not inherit a section break
