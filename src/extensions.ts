@@ -27,6 +27,7 @@ import { markdownImageSources, type ResolveMarkdownImage } from "./imageSources.
 import { youtubeEmbeds } from "./youtubeEmbeds.js";
 import { ideaSpacesMarkdownSyntax } from "./markdownSyntax.js";
 import { insertMarkdownParagraph } from "./paragraphs.js";
+import { paragraphRhythm } from "./paragraphRhythm.js";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, insertNewline } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
@@ -136,6 +137,7 @@ export function noteEditorExtensions(opts: {
     // IdeaSpaces owns visual syntax. Atomic Editor supplies live-preview
     // mechanics only, so nested syntax spans cannot restyle block typography.
     ideaSpacesMarkdownSyntax,
+    paragraphRhythm,
     // Render leading YAML frontmatter as a Properties panel (after the markdown
     // syntax layer, so it overrides how the `---` block would otherwise render).
     // No Edit affordance in read-only (README) renders.
