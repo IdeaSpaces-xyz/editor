@@ -26,8 +26,9 @@ import { markdownImageFiles, type StoreMarkdownImage } from "./imageAssets.js";
 import { markdownImageSources, type ResolveMarkdownImage } from "./imageSources.js";
 import { youtubeEmbeds } from "./youtubeEmbeds.js";
 import { ideaSpacesMarkdownSyntax } from "./markdownSyntax.js";
+import { insertMarkdownParagraph } from "./paragraphs.js";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, insertNewline } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
 import { indentOnInput } from "@codemirror/language";
 import { EditorState, type Extension } from "@codemirror/state";
@@ -156,6 +157,10 @@ export function noteEditorExtensions(opts: {
           return true;
         },
       },
+      // Enter means a paragraph in ordinary prose. Shift+Enter is the explicit
+      // soft line break; structured Markdown falls through to markdownKeymap.
+      { key: "Enter", run: insertMarkdownParagraph },
+      { key: "Shift-Enter", run: insertNewline },
     ]),
     // No indentWithTab — this is a prose editor; Tab should stay available for
     // UI navigation/accessibility, and markdownKeymap handles list continuation.
