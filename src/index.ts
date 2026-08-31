@@ -19,7 +19,9 @@ export {
   imageDescription,
   isImageUrl,
   visualUrlInsertion,
+  youtubeTitleLabel,
   youtubeVideo,
+  type ResolveYouTubeTitle,
   type VisualUrlInsertion,
   type YouTubeVideo,
 } from "./media.js";

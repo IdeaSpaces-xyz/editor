@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
   imageDescription,
   isImageUrl,
+  resolvedYouTubeTitleChange,
   visualUrlInsertion,
+  youtubeTitleLabel,
   youtubeVideo,
 } from "./media";
 
@@ -80,6 +82,24 @@ describe("visual URL authoring", () => {
       });
     }
     expect(youtubeVideo("https://notyoutube.example/watch?v=dQw4w9WgXcQ")).toBeNull();
+  });
+
+  it("turns public video metadata into a bounded portable caption", () => {
+    expect(youtubeTitleLabel("  A  title with [context] \\ details\n"))
+      .toBe("A title with \\[context\\] \\\\ details");
+    expect(youtubeTitleLabel(" \n ")).toBeNull();
+    expect(youtubeTitleLabel("x".repeat(400))).toHaveLength(300);
+  });
+
+  it("replaces only the untouched fallback label with the resolved caption", () => {
+    const video = youtubeVideo("https://youtu.be/dQw4w9WgXcQ")!;
+    const editor = state(`[YouTube video](${video.canonicalUrl})\n\nAfter`);
+    expect(resolvedYouTubeTitleChange(editor, { from: 1, to: 14 }, video, "Actual title"))
+      .toEqual({ from: 1, to: 14, insert: "Actual title" });
+
+    const edited = state(`[My label](${video.canonicalUrl})`);
+    expect(resolvedYouTubeTitleChange(edited, { from: 1, to: 9 }, video, "Actual title"))
+      .toBeNull();
   });
 
   it("puts a YouTube link on its own line and selects its portable label", () => {

@@ -42,11 +42,12 @@ not multiply the gap, and headings continue to own their section spacing.
 The editor also completes a typed list prefix such as `- [` to the valid task
 marker `- [ ] `. Pasting a bare image URL creates a portable Markdown image and
 pasting a YouTube URL creates a standard labeled link; the generated description
-is selected for immediate editing. A standalone YouTube link is enhanced into a
-responsive `youtube-nocookie.com` player while remaining a valid link in other
-Markdown consumers. The **Note index, link resolution, asset storage, and IO
-adapters stay in each app**; only host-neutral authoring behavior and presentation
-live here.
+is selected for immediate editing. A host may provide `resolveYouTubeTitle` to replace the
+fallback label with public video metadata without blocking offline paste. A standalone YouTube
+link is enhanced into a responsive, fullscreen-capable `youtube-nocookie.com` player while
+remaining a valid link in other Markdown consumers. The **Note index, link resolution, public
+metadata lookup, asset storage, and IO adapters stay in each app**; only host-neutral authoring
+behavior and presentation live here.
 
 ## Exports
 

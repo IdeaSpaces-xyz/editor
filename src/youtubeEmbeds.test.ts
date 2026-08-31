@@ -13,6 +13,10 @@ describe("YouTube Markdown enhancement", () => {
     });
 
     expect(youtubeMarkdownLink(
+      "[Product \\[walkthrough\\]](https://youtu.be/dQw4w9WgXcQ)",
+    )?.label).toBe("Product [walkthrough]");
+
+    expect(youtubeMarkdownLink(
       "Watch [Product walkthrough](https://youtu.be/dQw4w9WgXcQ) later.",
     )).toBeNull();
     expect(youtubeMarkdownLink("[Article](https://example.test/video)")).toBeNull();

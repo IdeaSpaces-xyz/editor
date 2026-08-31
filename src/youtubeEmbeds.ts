@@ -3,7 +3,11 @@ import { StateField, type EditorState, type Extension } from "@codemirror/state"
 import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
 import { youtubeVideo } from "./media.js";
 
-const STANDALONE_YOUTUBE_LINK = /^\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)\s*$/u;
+const STANDALONE_YOUTUBE_LINK = /^\s*\[((?:\\.|[^\\\]])+)\]\((https?:\/\/[^\s)]+)\)\s*$/u;
+
+function markdownLabelText(value: string): string {
+  return value.replace(/\\([\\[\]])/gu, "$1");
+}
 
 export interface YouTubeMarkdownLink {
   label: string;
@@ -16,7 +20,7 @@ export interface YouTubeMarkdownLink {
 export function youtubeMarkdownLink(line: string): YouTubeMarkdownLink | null {
   const match = STANDALONE_YOUTUBE_LINK.exec(line);
   if (!match) return null;
-  const label = match[1]?.trim();
+  const label = match[1] ? markdownLabelText(match[1]).trim() : "";
   const url = match[2];
   if (!label || !url) return null;
   const video = youtubeVideo(url);
@@ -48,7 +52,7 @@ class YouTubeWidget extends WidgetType {
     iframe.title = this.label;
     iframe.loading = "lazy";
     iframe.referrerPolicy = "strict-origin-when-cross-origin";
-    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share";
     iframe.allowFullscreen = true;
     frame.appendChild(iframe);
 
