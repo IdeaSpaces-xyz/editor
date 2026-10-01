@@ -678,14 +678,16 @@
   height: auto;
 }
 
-/* A wiki-link's `[[…]]` source is only shrunk to nothing while editing, so a
-   screen reader still reads it and find-in-page still matches it. Reading
-   never reveals it: take it out of the page. */
-.cm-note-host.cm-is-read .cm-atomic-wiki-link-hidden-syntax {
-  display: none;
+/* Links follow on a click or Enter while reading; the keyboard reaches each
+   one, and focus shows where it is. */
+.cm-note-host.cm-is-read [role="link"] {
+  cursor: pointer;
 }
-
-/* Links follow on any click while reading. */
+.cm-note-host.cm-is-read [role="link"]:focus-visible {
+  outline: 2px solid var(--is-focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
 .cm-note-host.cm-is-read .cm-atomic-link::after {
   display: none;
 }

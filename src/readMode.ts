@@ -14,6 +14,8 @@
 //   a standalone YouTube link a poster that loads the player only on intent,
 //   and a table a plain table — none of them editable.
 // - Every block carries `data-block="b<n>"`, every heading its slug `id`.
+// - Every link is a link to the keyboard and to assistive technology, and a
+//   plain click or Enter follows it.
 // - The whole document is rendered, not the viewport: anchors below the fold,
 //   find-in-page and print all need the text in the DOM.
 
@@ -34,12 +36,15 @@ import {
 } from "@codemirror/view";
 import { blocksOf, frontmatterEnd, titleBlock, type NoteBlock, type NoteImage } from "./blocks.js";
 import { youtubeVideo } from "./media.js";
+import type { WikiLinkResolvedTarget } from "@atomic-editor/editor";
 
 type SyntaxNode = ReturnType<typeof syntaxTree>["topNode"];
 
 export interface ReadLinks {
   onLinkClick: (url: string) => void;
   onWikiOpen?: (target: string) => void;
+  /** Whether a `[[target]]` exists, for its styling, and the label to show. */
+  resolveWiki?: (target: string) => WikiLinkResolvedTarget | null;
 }
 
 const readLinksFacet = Facet.define<ReadLinks, ReadLinks>({
@@ -63,17 +68,31 @@ const SKIPPED_INLINE = new Set([
 ]);
 const WIKI = /\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/gu;
 
-function appendText(parent: HTMLElement, text: string): void {
+// Every link the reader can follow is a real link to assistive technology and
+// the keyboard: role, a tab stop, and where it goes. One listener follows them.
+function makeLink(element: HTMLElement, to: { href?: string; wiki?: string }): HTMLElement {
+  element.setAttribute("role", "link");
+  element.tabIndex = 0;
+  if (to.href) element.setAttribute("data-read-href", to.href);
+  if (to.wiki) element.setAttribute("data-read-wiki", to.wiki);
+  return element;
+}
+
+function wikiElement(state: EditorState, target: string, alias: string | undefined): HTMLElement {
+  const resolved = state.facet(readLinksFacet).resolveWiki?.(target);
+  const status = resolved === null ? "missing" : resolved?.status ?? "resolved";
+  const link = document.createElement("span");
+  link.className = `cm-atomic-wiki-link cm-atomic-wiki-link-${status}`;
+  link.textContent = (alias ?? resolved?.label ?? target).trim();
+  return makeLink(link, { wiki: target });
+}
+
+function appendText(state: EditorState, parent: HTMLElement, text: string): void {
   let last = 0;
   for (const match of text.matchAll(WIKI)) {
     const at = match.index ?? 0;
     if (at > last) parent.append(text.slice(last, at));
-    const target = (match[1] ?? "").trim();
-    const link = document.createElement("a");
-    link.className = "cm-atomic-wiki-link";
-    link.dataset.wiki = target;
-    link.textContent = (match[2] ?? match[1] ?? "").trim();
-    parent.append(link);
+    parent.append(wikiElement(state, (match[1] ?? "").trim(), match[2]));
     last = at + match[0].length;
   }
   if (last < text.length) parent.append(text.slice(last));
@@ -83,7 +102,7 @@ function appendText(parent: HTMLElement, text: string): void {
 function renderInline(state: EditorState, node: SyntaxNode, parent: HTMLElement): void {
   let cursor = node.from;
   const gap = (to: number) => {
-    if (to > cursor) appendText(parent, state.doc.sliceString(cursor, to));
+    if (to > cursor) appendText(state, parent, state.doc.sliceString(cursor, to));
   };
   for (let child = node.firstChild; child; child = child.nextSibling) {
     gap(child.from);
@@ -115,9 +134,9 @@ function renderInline(state: EditorState, node: SyntaxNode, parent: HTMLElement)
       }
       case "Link": {
         const url = child.getChild("URL");
-        const link = document.createElement("a");
+        const link = document.createElement("span");
         link.className = "cm-atomic-link";
-        if (url) link.dataset.href = state.doc.sliceString(url.from, url.to);
+        makeLink(link, { href: url ? state.doc.sliceString(url.from, url.to) : undefined });
         const text = document.createElement("span");
         const labelEnd = child.getChildren("LinkMark")[1]?.from ?? child.to;
         const label = state.doc.sliceString(child.from + 1, labelEnd);
@@ -129,9 +148,8 @@ function renderInline(state: EditorState, node: SyntaxNode, parent: HTMLElement)
       case "Autolink":
       case "URL": {
         const raw = state.doc.sliceString(child.from, child.to).replace(/^<|>$/gu, "");
-        const link = document.createElement("a");
+        const link = makeLink(document.createElement("span"), { href: raw });
         link.className = "cm-atomic-link";
-        link.dataset.href = raw;
         link.textContent = raw;
         parent.append(link);
         break;
@@ -157,24 +175,6 @@ function imageElement(image: NoteImage): HTMLImageElement {
   return element;
 }
 
-// Links inside widgets are not CodeMirror text, so the widget routes them.
-function routeWidgetLinks(view: EditorView, root: HTMLElement): void {
-  root.addEventListener("click", (event) => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const target = event.target instanceof Element ? event.target : null;
-    const wiki = target?.closest<HTMLElement>("[data-wiki]");
-    const link = target?.closest<HTMLElement>("[data-href]");
-    const links = view.state.facet(readLinksFacet);
-    if (wiki?.dataset.wiki && links.onWikiOpen) {
-      event.preventDefault();
-      links.onWikiOpen(wiki.dataset.wiki);
-    } else if (link?.dataset.href) {
-      event.preventDefault();
-      links.onLinkClick(link.dataset.href);
-    }
-  });
-}
-
 // ---- block widgets ----------------------------------------------------------
 
 abstract class ReadBlockWidget extends WidgetType {
@@ -185,12 +185,11 @@ abstract class ReadBlockWidget extends WidgetType {
     super();
   }
 
-  protected frame(view: EditorView, tag: string, className: string): HTMLElement {
+  protected frame(_view: EditorView, tag: string, className: string): HTMLElement {
     const element = document.createElement(tag);
     element.className = `cm-is-block ${className}${this.lead ? " cm-is-lead" : ""}`;
     element.dataset.block = this.block.id;
     element.setAttribute("contenteditable", "false");
-    routeWidgetLinks(view, element);
     return element;
   }
 
@@ -271,9 +270,8 @@ class YouTubeReadWidget extends ReadBlockWidget {
 
     const caption = document.createElement("figcaption");
     caption.append(source.label, " ");
-    const external = document.createElement("a");
+    const external = makeLink(document.createElement("span"), { href: video.canonicalUrl });
     external.className = "cm-is-youtube-source";
-    external.dataset.href = video.canonicalUrl;
     external.textContent = "YouTube ↗";
     caption.append(external);
     figure.append(play, caption);
@@ -382,6 +380,60 @@ function inlineImages(state: EditorState, block: NoteBlock): NoteImage[] {
   return images;
 }
 
+class WikiReadWidget extends WidgetType {
+  constructor(readonly target: string, readonly alias: string | undefined) {
+    super();
+  }
+
+  eq(other: WikiReadWidget): boolean {
+    return other.target === this.target && other.alias === this.alias;
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    return wikiElement(view.state, this.target, this.alias);
+  }
+
+  ignoreEvent(): boolean {
+    return true;
+  }
+}
+
+function insideCode(state: EditorState, pos: number): boolean {
+  for (let node: SyntaxNode | null = syntaxTree(state).resolveInner(pos, 1); node; node = node.parent) {
+    if (/Code/u.test(node.name)) return true;
+  }
+  return false;
+}
+
+// Links in running text: a Markdown link keeps its rendered label and becomes
+// a link to the keyboard and assistive technology; a `[[wiki-link]]` becomes
+// one element in place of its source, so nothing of the source is left to read.
+function textLinks(state: EditorState, block: NoteBlock, ranges: Range<Decoration>[]): void {
+  syntaxTree(state).iterate({
+    from: block.from,
+    to: block.to,
+    enter(node) {
+      if (node.name === "Image" || /Code/u.test(node.name)) return false;
+      if (node.name !== "Link" && node.name !== "Autolink" && !(node.name === "URL" && node.node.parent?.name !== "Link")) return;
+      const url = node.name === "URL" ? node.node : node.node.getChild("URL");
+      if (!url || node.from >= node.to) return false;
+      const href = state.doc.sliceString(url.from, url.to).replace(/^<|>$/gu, "");
+      ranges.push(Decoration.mark({
+        attributes: { role: "link", tabindex: "0", "data-read-href": href },
+      }).range(node.from, node.to));
+      return false;
+    },
+  });
+  const text = state.doc.sliceString(block.from, block.to);
+  for (const match of text.matchAll(WIKI)) {
+    const from = block.from + (match.index ?? 0);
+    const to = from + match[0].length;
+    if (insideCode(state, from)) continue;
+    const widget = new WikiReadWidget((match[1] ?? "").trim(), match[2]);
+    ranges.push(Decoration.replace({ widget }).range(from, to));
+  }
+}
+
 interface ReadLayout {
   blocks: NoteBlock[];
   decorations: DecorationSet;
@@ -440,6 +492,7 @@ function buildLayout(state: EditorState): ReadLayout {
       ranges.push(Decoration.line({ class: classes.join(" "), attributes }).range(line.from));
     }
     lead = false;
+    if (block.kind !== "code" && block.kind !== "html") textLinks(state, block, ranges);
 
     if (block.kind === "paragraph") {
       const images = inlineImages(state, block);
@@ -492,30 +545,46 @@ const renderWholeDocument = ViewPlugin.fromClass(class {
   }
 });
 
-function linkUrlAt(view: EditorView, element: Element): string | null {
-  const pos = view.posAtDOM(element);
-  if (pos < 0) return null;
-  let node: SyntaxNode | null = syntaxTree(view.state).resolveInner(pos, 1);
-  while (node && node.name !== "Link" && node.name !== "Autolink") node = node.parent;
-  if (!node) return null;
-  const url = node.getChild("URL");
-  if (!url) return null;
-  return view.state.doc.sliceString(url.from, url.to).replace(/^<|>$/gu, "") || null;
-}
+// Follow a link on a plain click or on Enter — any link, anywhere in the note,
+// widgets included (their events bubble here; CodeMirror ignores them).
+const followLinks = ViewPlugin.fromClass(class {
+  constructor(readonly view: EditorView) {
+    view.contentDOM.addEventListener("click", this.onClick);
+    view.contentDOM.addEventListener("keydown", this.onKey);
+  }
 
-// A click anywhere on a link follows it — in an editor only its icon does.
-const followLinks = EditorView.domEventHandlers({
-  click(event, view) {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
-    const target = event.target instanceof Element ? event.target : null;
-    const link = target?.closest(".cm-atomic-link");
-    if (!link || !view.contentDOM.contains(link)) return false;
-    const url = linkUrlAt(view, link);
-    if (!url) return false;
-    event.preventDefault();
-    view.state.facet(readLinksFacet).onLinkClick(url);
-    return true;
-  },
+  destroy(): void {
+    this.view.contentDOM.removeEventListener("click", this.onClick);
+    this.view.contentDOM.removeEventListener("keydown", this.onKey);
+  }
+
+  readonly onClick = (event: MouseEvent) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (this.follow(event.target)) event.preventDefault();
+  };
+
+  readonly onKey = (event: KeyboardEvent) => {
+    if (event.key !== "Enter" || event.defaultPrevented) return;
+    if (this.follow(event.target)) event.preventDefault();
+  };
+
+  private follow(target: EventTarget | null): boolean {
+    const element = target instanceof Element ? target.closest<HTMLElement>("[data-read-wiki], [data-read-href]") : null;
+    if (!element || !this.view.contentDOM.contains(element)) return false;
+    const links = this.view.state.facet(readLinksFacet);
+    const wiki = element.getAttribute("data-read-wiki");
+    const href = element.getAttribute("data-read-href");
+    if (wiki) {
+      links.onWikiOpen?.(wiki);
+      return true;
+    }
+    if (href) {
+      links.onLinkClick(href);
+      return true;
+    }
+    return false;
+  }
 });
 
 export interface ReadModeOptions extends ReadLinks {
@@ -526,7 +595,11 @@ export interface ReadModeOptions extends ReadLinks {
 /** Everything read mode adds on top of the shared parse and live preview. */
 export function readMode(options: ReadModeOptions): Extension[] {
   return [
-    readLinksFacet.of({ onLinkClick: options.onLinkClick, onWikiOpen: options.onWikiOpen }),
+    readLinksFacet.of({
+      onLinkClick: options.onLinkClick,
+      onWikiOpen: options.onWikiOpen,
+      resolveWiki: options.resolveWiki,
+    }),
     hideTitleFacet.of(options.hideTitle ?? false),
     readLayoutField,
     renderWholeDocument,

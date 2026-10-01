@@ -202,7 +202,8 @@ export function noteEditorExtensions(opts: {
 // Read mode keeps the parse, the syntax palette and live preview's hidden
 // markup, and drops everything that edits: history, keymaps, the selection
 // layer (native selection stays visible for copying and quoting), completions,
-// paste, the Properties panel and the interactive table and image widgets.
+// paste, the Properties panel and the interactive table, image and wiki-link
+// widgets. Read mode draws its own figures, tables and wiki-links.
 function readExtensions(opts: Parameters<typeof noteEditorExtensions>[0]): Extension[] {
   return [
     highlightSpecialChars(),
@@ -214,6 +215,7 @@ function readExtensions(opts: Parameters<typeof noteEditorExtensions>[0]): Exten
     readMode({
       onLinkClick: opts.onLinkClick,
       onWikiOpen: opts.onWikiOpen,
+      resolveWiki: opts.resolveWiki,
       hideTitle: opts.hideTitle,
     }),
     ...(opts.resolveMarkdownImage
@@ -223,13 +225,5 @@ function readExtensions(opts: Parameters<typeof noteEditorExtensions>[0]): Exten
         )]
       : []),
     inlinePreview({ onLinkClick: opts.onLinkClick }),
-    // A plain click follows a wiki-link while reading.
-    wikiLinks({
-      openOnClick: true,
-      onOpen: opts.onWikiOpen,
-      resolve: opts.resolveWiki
-        ? async (target) => opts.resolveWiki!(target)
-        : undefined,
-    }),
   ];
 }
