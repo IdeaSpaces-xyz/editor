@@ -461,6 +461,18 @@
   overflow-wrap: anywhere;
 }
 
+/* The text sits on the column's edge, under the host's title: no CodeMirror
+   line inset. Lists keep their hanging indent (an inline style), code and
+   quotes their own below. */
+.cm-note-host.cm-is-read .cm-line {
+  padding-left: 0;
+  padding-right: 0;
+}
+.cm-note-host.cm-is-read .cm-line.cm-atomic-fenced-code {
+  padding-left: 0.85rem;
+  padding-right: 0.85rem;
+}
+
 /* Blank source lines are structure; blocks own the gap between them. */
 .cm-note-host.cm-is-read .cm-line:not(.cm-is-block) {
   min-height: 0;
@@ -469,8 +481,10 @@
   padding: 0;
   overflow: hidden;
 }
+/* A block's first line, or a block widget (figure, table, video): never the
+   second line of a list, a quote or a code block. */
 .cm-note-host.cm-is-read .cm-line.cm-is-block-start,
-.cm-note-host.cm-is-read .cm-is-block[data-block] {
+.cm-note-host.cm-is-read .cm-is-block[data-block]:not(.cm-line) {
   margin-top: var(--is-read-gap, 14px);
 }
 .cm-note-host.cm-is-read .cm-content .cm-is-lead {
@@ -479,7 +493,7 @@
 .cm-note-host.cm-is-read .cm-line.cm-is-fence {
   font-size: 0;
   line-height: 0;
-  padding-block: 6px;
+  padding-block: 4px;
 }
 .cm-note-host.cm-is-read .cm-line.cm-ideaspaces-paragraph-end {
   padding-bottom: 0;
@@ -518,7 +532,7 @@
 }
 
 /* Quote: italic, the quiet 1.5px rule, inset per scale. */
-.cm-note-host.cm-is-read .cm-atomic-blockquote {
+.cm-note-host.cm-is-read .cm-line.cm-atomic-blockquote {
   font-size: var(--is-read-quote-size, 18px);
   line-height: 1.55;
   padding-left: var(--is-read-quote-inset, 18px);
