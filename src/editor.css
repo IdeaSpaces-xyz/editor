@@ -438,3 +438,233 @@
   font-size: 0.72rem;
   font-style: normal;
 }
+
+/* ---------------------------------------------------------------------------
+   Read mode (`readOnly`) — the reading surface. Type and spacing come from the
+   `--is-read-*` tokens the host sets per scale (SPEC: pane / page); the
+   fallbacks are the pane scale, so the editor still reads well on its own.
+   The gap between blocks is a margin here, unlike the editing surface: read
+   mode renders the whole document and never places a caret, so the heightmap
+   no longer positions anything, and a margin keeps a code block's backdrop and
+   a quote's rule out of the gap.
+   --------------------------------------------------------------------------- */
+
+.cm-note-host.cm-is-read .cm-content {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-prose);
+  font-size: var(--is-read-body-size, 17px);
+  line-height: var(--is-read-body-leading, 1.62);
+  color: var(--is-text);
+  caret-color: transparent;
+  overflow-wrap: anywhere;
+}
+
+/* Blank source lines are structure; blocks own the gap between them. */
+.cm-note-host.cm-is-read .cm-line:not(.cm-is-block) {
+  min-height: 0;
+  height: 0;
+  line-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.cm-note-host.cm-is-read .cm-line.cm-is-block-start,
+.cm-note-host.cm-is-read .cm-is-block[data-block] {
+  margin-top: var(--is-read-gap, 14px);
+}
+.cm-note-host.cm-is-read .cm-content .cm-is-lead {
+  margin-top: 0;
+}
+.cm-note-host.cm-is-read .cm-line.cm-is-fence {
+  font-size: 0;
+  line-height: 0;
+  padding-block: 6px;
+}
+.cm-note-host.cm-is-read .cm-line.cm-ideaspaces-paragraph-end {
+  padding-bottom: 0;
+}
+
+/* Headings. H1 is the title (usually hidden into the host's chrome); a second
+   H1 in the body reads at the title size. */
+.cm-note-host.cm-is-read .cm-line.cm-atomic-h1 {
+  font-size: var(--is-read-title-size, 30px);
+  line-height: var(--is-read-title-leading, 1.12);
+  letter-spacing: -0.016em;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.cm-note-host.cm-is-read .cm-line.cm-atomic-h2 {
+  font-size: var(--is-read-h2-size, 22px);
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  margin-top: calc(var(--is-read-gap, 14px) + var(--is-read-h2-space, 16px));
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.cm-note-host.cm-is-read .cm-line.cm-atomic-h3,
+.cm-note-host.cm-is-read .cm-line.cm-atomic-h4,
+.cm-note-host.cm-is-read .cm-line.cm-atomic-h5,
+.cm-note-host.cm-is-read .cm-line.cm-atomic-h6 {
+  font-family: var(--font-chrome);
+  font-size: var(--is-read-h3-size, 11px);
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--is-text-tertiary);
+  margin-top: calc(var(--is-read-gap, 14px) + 4px);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Quote: italic, the quiet 1.5px rule, inset per scale. */
+.cm-note-host.cm-is-read .cm-atomic-blockquote {
+  font-size: var(--is-read-quote-size, 18px);
+  line-height: 1.55;
+  padding-left: var(--is-read-quote-inset, 18px);
+}
+
+/* Code. */
+.cm-note-host.cm-is-read .cm-atomic-fenced-code {
+  font-size: var(--is-read-code-size, 12.5px);
+  line-height: 1.6;
+}
+.cm-note-host.cm-is-read .cm-atomic-inline-code {
+  font-size: 0.82em;
+}
+
+/* Figures and the 2-up gallery: the caption is the alt text. */
+.cm-note-host.cm-is-read .cm-is-figure {
+  display: block;
+  margin: 0;
+  padding-bottom: 4px;
+}
+.cm-note-host.cm-is-read .cm-is-figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--is-border);
+  border-radius: 8px;
+  background: var(--is-surface-alt);
+}
+.cm-note-host.cm-is-read .cm-is-gallery-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  border: 1px solid var(--is-border);
+  border-radius: 8px;
+}
+.cm-note-host.cm-is-read .cm-is-gallery-grid img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 0;
+  border-radius: 0;
+}
+.cm-note-host.cm-is-read .cm-is-gallery-grid img + img {
+  border-left: 1px solid var(--is-border);
+}
+.cm-note-host.cm-is-read .cm-is-figure figcaption {
+  margin: 10px 2px 0;
+  font-family: var(--font-chrome);
+  font-size: 12px;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  color: var(--is-text-tertiary);
+}
+.cm-note-host.cm-is-read .cm-is-inline-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+/* YouTube: poster and play until the reader asks for the player. */
+.cm-note-host.cm-is-read .cm-is-youtube-poster {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--is-border);
+  border-radius: 8px;
+  background: var(--is-text);
+  cursor: pointer;
+}
+.cm-note-host.cm-is-read .cm-is-youtube-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+  border-radius: 0;
+}
+.cm-note-host.cm-is-read .cm-is-youtube-poster:focus-visible {
+  outline: 2px solid var(--is-focus-ring);
+  outline-offset: 2px;
+}
+.cm-note-host.cm-is-read .cm-is-youtube-play {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 56px;
+  height: 56px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--is-bg) 88%, transparent);
+}
+.cm-note-host.cm-is-read .cm-is-youtube-play::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 54%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 9px 0 9px 15px;
+  border-color: transparent transparent transparent var(--is-text);
+}
+.cm-note-host.cm-is-read .cm-is-youtube .cm-ideaspaces-youtube-frame {
+  border-radius: 8px;
+  box-shadow: none;
+}
+.cm-note-host.cm-is-read .cm-is-youtube-source {
+  color: var(--is-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--is-border);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Tables: plain, read-only, scroll sideways on a narrow screen. */
+.cm-note-host.cm-is-read .cm-is-table {
+  overflow-x: auto;
+}
+.cm-note-host.cm-is-read .cm-is-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: inherit;
+}
+.cm-note-host.cm-is-read .cm-is-table th,
+.cm-note-host.cm-is-read .cm-is-table td {
+  border-bottom: 1px solid var(--is-border);
+  padding: 0.5em 0.75em;
+  text-align: left;
+  vertical-align: top;
+}
+.cm-note-host.cm-is-read .cm-is-table th {
+  font-family: var(--font-chrome);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--is-text-tertiary);
+}
+.cm-note-host.cm-is-read .cm-is-table img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Links follow on any click while reading. */
+.cm-note-host.cm-is-read .cm-atomic-link::after {
+  display: none;
+}

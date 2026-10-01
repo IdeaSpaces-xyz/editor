@@ -49,10 +49,35 @@ remaining a valid link in other Markdown consumers. The **Note index, link resol
 metadata lookup, asset storage, and IO adapters stay in each app**; only host-neutral authoring
 behavior and presentation live here.
 
+## Read mode
+
+`readOnly` is **read mode**, the one reading surface both apps read every note through (one parser,
+one set of blocks). It keeps the parse, the syntax palette and live preview's hidden markup, and
+takes away everything that edits:
+
+- **Syntax never reveals.** The content element cannot take focus, the editor's selection never
+  moves, and a change filter refuses every document change, so no click, selection or key opens a
+  block's Markdown. The browser's own selection still works for copying and quoting.
+- **Frontmatter is hidden.** `hideTitle` also hides the first H1, so the host can draw it as the
+  title with a byline beneath.
+- **Figures.** `![caption](path)` is a figure captioned by its alt text; two images in one paragraph
+  are a 2-up gallery; a standalone YouTube link is a poster that loads the player only on a click;
+  a table is a plain, read-only table.
+- **Anchors.** Every top-level block carries `data-block="b<n>"` (its index in the parsed body) and
+  every heading a slug `id`. `noteBlocks(markdown)` returns the same list without a view.
+- **The whole document is in the DOM**, not only the viewport, so `#b<n>` below the fold,
+  find-in-page and print reach every line. This keeps CodeMirror's print-mode viewport on
+  (`viewState.printing`), an internal flag; if an upgrade moves it, reading degrades to the
+  viewport rather than failing.
+- **Links follow on a plain click**, wiki-links included.
+
+Type and spacing come from `--is-read-*` custom properties the host sets per scale (body, title,
+H2, H3, quote, code, gap); without them the pane scale applies.
+
 ## Exports
 
 ```ts
-import { NoteEditor, parseFrontmatter, setFrontmatterName, bodyStartOffset } from "@ideaspaces/editor";
+import { NoteEditor, noteBlocks, parseFrontmatter, setFrontmatterName, bodyStartOffset } from "@ideaspaces/editor";
 import { youtubeVideo } from "@ideaspaces/editor/media"; // parser-only consumer, no editor bundle
 import "@ideaspaces/editor/styles.css"; // (NoteEditor also side-effect-imports it)
 ```
