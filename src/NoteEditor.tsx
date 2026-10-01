@@ -22,6 +22,9 @@ export interface NoteEditorProps {
   readOnly?: boolean;
   /** Read mode only: hide the first H1 so the host can draw it as the title. */
   hideTitle?: boolean;
+  /** Read mode only: the URL a link (or, with `wiki`, a `[[target]]`) points
+   *  at. With one, the link is a real `<a href>`; without, a link by role. */
+  linkHref?: (url: string, wiki: boolean) => string | null | undefined;
   autoHeight?: boolean;
   autoFocus?: boolean;
   onWikiOpen?: (target: string) => void;
@@ -52,6 +55,7 @@ function EditorImpl({
   onLinkClick,
   readOnly = false,
   hideTitle = false,
+  linkHref,
   autoHeight = false,
   autoFocus = true,
   onWikiOpen,
@@ -73,6 +77,8 @@ function EditorImpl({
   const onMarkdownImageErrorRef = useRef(onMarkdownImageError);
   const resolveMarkdownImageRef = useRef(resolveMarkdownImage);
   const resolveYouTubeTitleRef = useRef(resolveYouTubeTitle);
+  const linkHrefRef = useRef(linkHref);
+  linkHrefRef.current = linkHref;
   onChangeRef.current = onChange;
   onSaveRef.current = onSave;
   onLinkClickRef.current = onLinkClick;
@@ -100,6 +106,7 @@ function EditorImpl({
           onLinkClick: (url) => onLinkClickRef.current(url),
           readOnly,
           hideTitle,
+          linkHref: linkHref ? (url, wiki) => linkHrefRef.current?.(url, wiki) : undefined,
           autoHeight,
           // Wired only when the host provides them, so wiki-links light up only
           // where there's a note index. Ref indirection keeps the view built once.

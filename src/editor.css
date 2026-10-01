@@ -680,10 +680,12 @@
 
 /* Links follow on a click or Enter while reading; the keyboard reaches each
    one, and focus shows where it is. */
-.cm-note-host.cm-is-read [role="link"] {
+.cm-note-host.cm-is-read [role="link"],
+.cm-note-host.cm-is-read a[href] {
   cursor: pointer;
 }
-.cm-note-host.cm-is-read [role="link"]:focus-visible {
+.cm-note-host.cm-is-read [role="link"]:focus-visible,
+.cm-note-host.cm-is-read a[href]:focus-visible {
   outline: 2px solid var(--is-focus-ring);
   outline-offset: 2px;
   border-radius: 2px;

@@ -45,6 +45,9 @@ export interface ReadLinks {
   onWikiOpen?: (target: string) => void;
   /** Whether a `[[target]]` exists, for its styling, and the label to show. */
   resolveWiki?: (target: string) => WikiLinkResolvedTarget | null;
+  /** The URL a link points at, when the host has one: the link becomes a real
+   *  `<a href>`, so it can open in a new tab and shows where it goes. */
+  linkHref?: (url: string, wiki: boolean) => string | null | undefined;
 }
 
 const readLinksFacet = Facet.define<ReadLinks, ReadLinks>({
@@ -69,22 +72,31 @@ const SKIPPED_INLINE = new Set([
 const WIKI = /\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/gu;
 
 // Every link the reader can follow is a real link to assistive technology and
-// the keyboard: role, a tab stop, and where it goes. One listener follows them.
-function makeLink(element: HTMLElement, to: { href?: string; wiki?: string }): HTMLElement {
-  element.setAttribute("role", "link");
-  element.tabIndex = 0;
-  if (to.href) element.setAttribute("data-read-href", to.href);
-  if (to.wiki) element.setAttribute("data-read-wiki", to.wiki);
+// the keyboard. With a URL from the host it is an `<a href>`; without one (a
+// local note, a missing target) it is a link by role and tab stop. One listener
+// follows either; a modified click on an `<a href>` is left to the browser.
+function linkAttributes(state: EditorState, to: { href?: string; wiki?: string }): Record<string, string> {
+  const url = state.facet(readLinksFacet).linkHref?.(to.wiki ?? to.href ?? "", Boolean(to.wiki));
+  const attributes: Record<string, string> = url ? { href: url } : { role: "link", tabindex: "0" };
+  if (to.href) attributes["data-read-href"] = to.href;
+  if (to.wiki) attributes["data-read-wiki"] = to.wiki;
+  return attributes;
+}
+
+function linkElement(state: EditorState, to: { href?: string; wiki?: string }): HTMLElement {
+  const attributes = linkAttributes(state, to);
+  const element = document.createElement(attributes.href ? "a" : "span");
+  for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, value);
   return element;
 }
 
 function wikiElement(state: EditorState, target: string, alias: string | undefined): HTMLElement {
   const resolved = state.facet(readLinksFacet).resolveWiki?.(target);
   const status = resolved === null ? "missing" : resolved?.status ?? "resolved";
-  const link = document.createElement("span");
+  const link = linkElement(state, { wiki: target });
   link.className = `cm-atomic-wiki-link cm-atomic-wiki-link-${status}`;
   link.textContent = (alias ?? resolved?.label ?? target).trim();
-  return makeLink(link, { wiki: target });
+  return link;
 }
 
 function appendText(state: EditorState, parent: HTMLElement, text: string): void {
@@ -134,9 +146,8 @@ function renderInline(state: EditorState, node: SyntaxNode, parent: HTMLElement)
       }
       case "Link": {
         const url = child.getChild("URL");
-        const link = document.createElement("span");
+        const link = linkElement(state, { href: url ? state.doc.sliceString(url.from, url.to) : undefined });
         link.className = "cm-atomic-link";
-        makeLink(link, { href: url ? state.doc.sliceString(url.from, url.to) : undefined });
         const text = document.createElement("span");
         const labelEnd = child.getChildren("LinkMark")[1]?.from ?? child.to;
         const label = state.doc.sliceString(child.from + 1, labelEnd);
@@ -148,7 +159,7 @@ function renderInline(state: EditorState, node: SyntaxNode, parent: HTMLElement)
       case "Autolink":
       case "URL": {
         const raw = state.doc.sliceString(child.from, child.to).replace(/^<|>$/gu, "");
-        const link = makeLink(document.createElement("span"), { href: raw });
+        const link = linkElement(state, { href: raw });
         link.className = "cm-atomic-link";
         link.textContent = raw;
         parent.append(link);
@@ -270,7 +281,7 @@ class YouTubeReadWidget extends ReadBlockWidget {
 
     const caption = document.createElement("figcaption");
     caption.append(source.label, " ");
-    const external = makeLink(document.createElement("span"), { href: video.canonicalUrl });
+    const external = linkElement(view.state, { href: video.canonicalUrl });
     external.className = "cm-is-youtube-source";
     external.textContent = "YouTube ↗";
     caption.append(external);
@@ -418,8 +429,10 @@ function textLinks(state: EditorState, block: NoteBlock, ranges: Range<Decoratio
       const url = node.name === "URL" ? node.node : node.node.getChild("URL");
       if (!url || node.from >= node.to) return false;
       const href = state.doc.sliceString(url.from, url.to).replace(/^<|>$/gu, "");
+      const attributes = linkAttributes(state, { href });
       ranges.push(Decoration.mark({
-        attributes: { role: "link", tabindex: "0", "data-read-href": href },
+        tagName: attributes.href ? "a" : "span",
+        attributes,
       }).range(node.from, node.to));
       return false;
     },
@@ -483,6 +496,11 @@ function buildLayout(state: EditorState): ReadLayout {
       const line = doc.line(number);
       const attributes: Record<string, string> = { "data-block": block.id };
       if (number === first.number && block.slug) attributes.id = block.slug;
+      // A heading line is a heading to assistive technology, not a div of text.
+      if (number === first.number && block.kind === "heading") {
+        attributes.role = "heading";
+        attributes["aria-level"] = String(block.level ?? 2);
+      }
       const classes = ["cm-is-block"];
       if (number === first.number) classes.push(lead ? "cm-is-block-start cm-is-lead" : "cm-is-block-start");
       // The fences are hidden markup; their lines only round the box.
@@ -566,6 +584,8 @@ const followLinks = ViewPlugin.fromClass(class {
 
   readonly onKey = (event: KeyboardEvent) => {
     if (event.key !== "Enter" || event.defaultPrevented) return;
+    // Enter on an `<a href>` already arrives as a click.
+    if (event.target instanceof Element && event.target.closest("a[href]")) return;
     if (this.follow(event.target)) event.preventDefault();
   };
 
@@ -599,6 +619,7 @@ export function readMode(options: ReadModeOptions): Extension[] {
       onLinkClick: options.onLinkClick,
       onWikiOpen: options.onWikiOpen,
       resolveWiki: options.resolveWiki,
+      linkHref: options.linkHref,
     }),
     hideTitleFacet.of(options.hideTitle ?? false),
     readLayoutField,

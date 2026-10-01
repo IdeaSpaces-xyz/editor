@@ -90,6 +90,8 @@ export function noteEditorExtensions(opts: {
   readOnly?: boolean;
   /** Read mode only: hide the first H1, which the host draws as the title. */
   hideTitle?: boolean;
+  /** Read mode only: the URL a link points at, so it renders as `<a href>`. */
+  linkHref?: (url: string, wiki: boolean) => string | null | undefined;
   /** Grow to content height instead of filling/scrolling the host. */
   autoHeight?: boolean;
   /** Open a `[[wiki-link]]` target (resolve + navigate, or offer to create). */
@@ -216,6 +218,7 @@ function readExtensions(opts: Parameters<typeof noteEditorExtensions>[0]): Exten
       onLinkClick: opts.onLinkClick,
       onWikiOpen: opts.onWikiOpen,
       resolveWiki: opts.resolveWiki,
+      linkHref: opts.linkHref,
       hideTitle: opts.hideTitle,
     }),
     ...(opts.resolveMarkdownImage

@@ -69,9 +69,11 @@ takes away everything that edits:
   find-in-page and print reach every line. This keeps CodeMirror's print-mode viewport on
   (`viewState.printing`), an internal flag; if an upgrade moves it, reading degrades to the
   viewport rather than failing.
-- **Every link is a link**: a tab stop with `role="link"`, followed on a plain click or Enter,
-  wiki-links included. Read mode draws a wiki-link as one element in place of its `[[…]]` source,
-  styled by `resolveWiki` at render.
+- **Every link is a link**: an `<a href>` when the host's `linkHref` names a URL (so it opens in
+  a new tab and shows where it goes), otherwise a tab stop with `role="link"`. A plain click or
+  Enter follows it through the host. Read mode draws a wiki-link as one element in place of its
+  `[[…]]` source, styled by `resolveWiki` at render.
+- **Headings are headings** to assistive technology (`role="heading"`, `aria-level`).
 
 Type and spacing come from `--is-read-*` custom properties the host sets per scale (body, title,
 H2, H3, quote, code, gap); without them the pane scale applies.
