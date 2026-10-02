@@ -28,6 +28,7 @@ import { youtubeEmbeds } from "./youtubeEmbeds.js";
 import { ideaSpacesMarkdownSyntax } from "./markdownSyntax.js";
 import { insertMarkdownParagraph } from "./paragraphs.js";
 import { paragraphRhythm } from "./paragraphRhythm.js";
+import { readMode } from "./readMode.js";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, insertNewline } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
@@ -85,8 +86,12 @@ export function noteEditorExtensions(opts: {
   onChange: (doc: string) => void;
   onSave: () => void;
   onLinkClick: (url: string) => void;
-  /** Render-only (README preview): no edits, no save. */
+  /** Read mode: the one reading surface. No edits, no save, no revealed syntax. */
   readOnly?: boolean;
+  /** Read mode only: hide the first H1, which the host draws as the title. */
+  hideTitle?: boolean;
+  /** Read mode only: the URL a link points at, so it renders as `<a href>`. */
+  linkHref?: (url: string, wiki: boolean) => string | null | undefined;
   /** Grow to content height instead of filling/scrolling the host. */
   autoHeight?: boolean;
   /** Open a `[[wiki-link]]` target (resolve + navigate, or offer to create). */
@@ -103,6 +108,7 @@ export function noteEditorExtensions(opts: {
   /** Resolve optional public metadata for a pasted YouTube URL. */
   resolveYouTubeTitle?: ResolveYouTubeTitle;
 }): Extension[] {
+  if (opts.readOnly) return readExtensions(opts);
   return [
     highlightSpecialChars(),
     history(),
@@ -112,21 +118,17 @@ export function noteEditorExtensions(opts: {
     indentOnInput(),
     rectangularSelection(),
     highlightActiveLine(),
-    ...(opts.readOnly
-      ? []
-      : [
-          taskMarkerCompletion(),
-          visualUrlPaste(opts.resolveYouTubeTitle),
-          ...(opts.storeMarkdownImage
-            ? [markdownImageFiles(
-                opts.storeMarkdownImage,
-                opts.onMarkdownImageError ?? ((error) => console.error(error)),
-              )]
-            : []),
-          ...(opts.suggestMarkdownLinks
-            ? [markdownLinkCompletion(opts.suggestMarkdownLinks)]
-            : []),
-        ]),
+    taskMarkerCompletion(),
+    visualUrlPaste(opts.resolveYouTubeTitle),
+    ...(opts.storeMarkdownImage
+      ? [markdownImageFiles(
+          opts.storeMarkdownImage,
+          opts.onMarkdownImageError ?? ((error) => console.error(error)),
+        )]
+      : []),
+    ...(opts.suggestMarkdownLinks
+      ? [markdownLinkCompletion(opts.suggestMarkdownLinks)]
+      : []),
     closeBrackets(),
     extendEmphasisPair,
     autoCloseCodeFence,
@@ -142,15 +144,12 @@ export function noteEditorExtensions(opts: {
     paragraphRhythm,
     // Render leading YAML frontmatter as a Properties panel (after the markdown
     // syntax layer, so it overrides how the `---` block would otherwise render).
-    // No Edit affordance in read-only (README) renders.
-    frontmatterPanel({ editable: !opts.readOnly }),
+    frontmatterPanel({ editable: true }),
     isChromeTheme,
     ...(opts.autoHeight ? [autoHeightTheme] : []),
-    ...(opts.readOnly
-      ? [EditorState.readOnly.of(true), EditorView.editable.of(false)]
-      : // Native browser spellcheck (red squiggles on misspellings) on the
-        // editable surface only. autocorrect off — flag, don't silently rewrite.
-        [EditorView.contentAttributes.of({ spellcheck: "true", autocorrect: "off" })]),
+    // Native browser spellcheck (red squiggles on misspellings) on the
+    // editable surface only. autocorrect off — flag, don't silently rewrite.
+    EditorView.contentAttributes.of({ spellcheck: "true", autocorrect: "off" }),
     // Save shortcut sits above the defaults so it wins.
     keymap.of([
       {
@@ -199,5 +198,35 @@ export function noteEditorExtensions(opts: {
     EditorView.updateListener.of((update) => {
       if (update.docChanged) opts.onChange(update.state.doc.toString());
     }),
+  ];
+}
+
+// Read mode keeps the parse, the syntax palette and live preview's hidden
+// markup, and drops everything that edits: history, keymaps, the selection
+// layer (native selection stays visible for copying and quoting), completions,
+// paste, the Properties panel and the interactive table, image and wiki-link
+// widgets. Read mode draws its own figures, tables and wiki-links.
+function readExtensions(opts: Parameters<typeof noteEditorExtensions>[0]): Extension[] {
+  return [
+    highlightSpecialChars(),
+    EditorView.lineWrapping,
+    markdown({ base: markdownLanguage }),
+    ideaSpacesMarkdownSyntax,
+    isChromeTheme,
+    ...(opts.autoHeight ? [autoHeightTheme] : []),
+    readMode({
+      onLinkClick: opts.onLinkClick,
+      onWikiOpen: opts.onWikiOpen,
+      resolveWiki: opts.resolveWiki,
+      linkHref: opts.linkHref,
+      hideTitle: opts.hideTitle,
+    }),
+    ...(opts.resolveMarkdownImage
+      ? [markdownImageSources(
+          opts.resolveMarkdownImage,
+          opts.onMarkdownImageError ?? ((error) => console.error(error)),
+        )]
+      : []),
+    inlinePreview({ onLinkClick: opts.onLinkClick }),
   ];
 }

@@ -17,7 +17,14 @@ export interface NoteEditorProps {
   onChange: (doc: string) => void;
   onSave: () => void;
   onLinkClick: (url: string) => void;
+  /** Read mode — the one reading surface: syntax never reveals, frontmatter is
+   *  hidden, figures and galleries render, every block carries `data-block`. */
   readOnly?: boolean;
+  /** Read mode only: hide the first H1 so the host can draw it as the title. */
+  hideTitle?: boolean;
+  /** Read mode only: the URL a link (or, with `wiki`, a `[[target]]`) points
+   *  at. With one, the link is a real `<a href>`; without, a link by role. */
+  linkHref?: (url: string, wiki: boolean) => string | null | undefined;
   autoHeight?: boolean;
   autoFocus?: boolean;
   onWikiOpen?: (target: string) => void;
@@ -39,15 +46,16 @@ export interface NoteEditorProps {
 // note remounts with fresh content — no doc-diffing, and the dirty/draft state
 // resets cleanly. Callbacks are held in refs so the CM view is built once.
 //
-// Also serves the inline README preview via `readOnly` (no edits/save) +
-// `autoHeight` (grow to content, page scrolls) + `autoFocus={false}` (don't
-// steal focus when it's just a rendered guide).
+// `readOnly` is read mode, the one reading surface every app reads notes
+// through; `autoHeight` lets the surrounding page scroll instead of the editor.
 function EditorImpl({
   initialContent,
   onChange,
   onSave,
   onLinkClick,
   readOnly = false,
+  hideTitle = false,
+  linkHref,
   autoHeight = false,
   autoFocus = true,
   onWikiOpen,
@@ -69,6 +77,8 @@ function EditorImpl({
   const onMarkdownImageErrorRef = useRef(onMarkdownImageError);
   const resolveMarkdownImageRef = useRef(resolveMarkdownImage);
   const resolveYouTubeTitleRef = useRef(resolveYouTubeTitle);
+  const linkHrefRef = useRef(linkHref);
+  linkHrefRef.current = linkHref;
   onChangeRef.current = onChange;
   onSaveRef.current = onSave;
   onLinkClickRef.current = onLinkClick;
@@ -95,6 +105,8 @@ function EditorImpl({
           // so it can surface failures via toast.
           onLinkClick: (url) => onLinkClickRef.current(url),
           readOnly,
+          hideTitle,
+          linkHref: linkHref ? (url, wiki) => linkHrefRef.current?.(url, wiki) : undefined,
           autoHeight,
           // Wired only when the host provides them, so wiki-links light up only
           // where there's a note index. Ref indirection keeps the view built once.
@@ -119,7 +131,7 @@ function EditorImpl({
         }),
       }),
     });
-    if (autoFocus) {
+    if (autoFocus && !readOnly) {
       // Land the caret in the body, past the frontmatter — never at offset 0.
       const at = bodyStartOffset(initialContent);
       if (at > 0) view.dispatch({ selection: { anchor: at } });
@@ -132,7 +144,10 @@ function EditorImpl({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <div ref={hostRef} className={autoHeight ? "cm-note-host" : "cm-note-host h-full"} />;
+  const hostClass = ["cm-note-host", readOnly && "cm-is-read", !autoHeight && "h-full"]
+    .filter(Boolean)
+    .join(" ");
+  return <div ref={hostRef} className={hostClass} />;
 }
 
 // Last-resort plain-text view when the rich editor throws while mounting (a
@@ -233,8 +248,8 @@ class EditorBoundary extends Component<
  * Mount-per-note: the parent keys this by file path, so opening a different note
  * remounts with fresh content (and resets the boundary).
  *
- * Also serves the inline README preview via `readOnly` + `autoHeight` +
- * `autoFocus={false}`.
+ * `readOnly` is read mode: the same parse and blocks, nothing editable, nothing
+ * revealed — the reading surface both apps share.
  */
 export function NoteEditor(props: NoteEditorProps) {
   return (
